@@ -42,7 +42,9 @@ class ROS_handler
 	std::vector<geometry_msgs::Point> edges;	
 	geometry_msgs::Point Last_node;
 	
-	cv::Mat image_received, image_tagged;
+	cv::Mat image_map, image_tagged;
+	
+	bool map_received, path_received, graph_received, tagged_image_received;
 	
 	public:
 		ROS_handler(const std::string& mapname) : mapname_(mapname),  it_(n)
@@ -57,10 +59,12 @@ class ROS_handler
 			image_sub_ = it_.subscribe("tagged_image", 1,  &ROS_handler::imageCallback, this);
 			
 			cv_ptr.reset (new cv_bridge::CvImage);
-			cv_ptr->encoding = "mono8";
+//			cv_ptr->encoding = "mono8";
 			
 			Uncertainty_sub_ = n.subscribe("query_Uncertainty", 10, &ROS_handler::UncertaintyCallback, this);
 			pose_array_pub_  = n.advertise<geometry_msgs::PoseArray>("query_Poses", 10);
+			
+			map_received = path_received = graph_received = tagged_image_received = false;
 			
 		}
 
@@ -77,7 +81,8 @@ class ROS_handler
 			cv::Mat grad, img(map->info.height, map->info.width, CV_8U);
 			img.data = (unsigned char *)(&(map->data[0]) );
 			cv::flip(img,img,0);
-			image_received = img;
+			image_map = img;
+			map_received = true;
 		}
 
 
@@ -88,7 +93,6 @@ class ROS_handler
 		  publish_Image();
 		}
 
-
 ////////////////
 		void trajectoryCallback(const geometry_msgs::PoseArray &msg)
 		{
@@ -97,13 +101,14 @@ class ROS_handler
 				std::cout << "Pose is "<< msg.poses[i].position.x  <<std::endl;
 			}//*/
 			Last_node = msg.poses.front().position;
+			path_received = true;
 		}
 
 ////////////////
 		void graphCallback(const visualization_msgs::Marker& graph_msg)
 		{
 			edges = graph_msg.points;
-
+			graph_received = true;
 		}
 
 ///////////////
@@ -115,9 +120,10 @@ class ROS_handler
 		void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 		{
 			cv_bridge::CvImagePtr temporal_ptr;
+
 			try
 			{
-			  temporal_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+			  temporal_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_32FC1);
 			}
 			catch (cv_bridge::Exception& e)
 			{
@@ -126,6 +132,34 @@ class ROS_handler
 			}
 			
 			image_tagged = temporal_ptr->image;
+			tagged_image_received = true;
+			
+			image_tagged.convertTo(image_tagged, CV_8UC1);
+
+			bool data_ready = map_received & path_received & graph_received & tagged_image_received;	
+			cv::Mat grad;
+			
+			UtilityGraph GraphSLAM;
+			GraphSLAM.build_graph_from_edges(edges);
+			if(data_ready){
+				GraphSLAM.update_distances(Last_node);
+				
+				grad = graph2image(GraphSLAM, map_info, image_tagged);
+				
+				find_contour_connectivity_and_frontier(image_tagged, image_map);
+//				GraphSLAM.print_nodes();
+				GraphSLAM.find_edges_between_regions();
+				double min, max;
+				cv::minMaxLoc(image_tagged, &min, &max);
+				GraphSLAM.evaluate_regions_connectivity( max);
+			}
+			else{
+				grad = image_tagged;
+			}
+
+			cv_ptr->encoding = sensor_msgs::image_encodings::TYPE_32FC1;			grad.convertTo(grad, CV_32F);
+			grad.copyTo(cv_ptr->image);////most important
+					
 		}
 
 
@@ -141,13 +175,6 @@ class ROS_handler
 /////////////////////////
 //// UTILITY
 /////////////////////////
-
-
-		void edges2Graph(){
-			int a=1;
-			std::pair<int,int> xyz;
-		}
-
 		void graph_iteration(){
 			std::cout << "Edges received "<< edges.size() << std::endl;
 			UtilityGraph GraphSLAM;
@@ -159,7 +186,6 @@ class ROS_handler
 //			cout << "Label of closest node "<< GraphSLAM.update_distances(Last_node) << endl;			
 //			GraphSLAM.print_nodes();
 		}
-
 
 		cv::Mat graph2image(UtilityGraph &GraphSLAM, nav_msgs::MapMetaData info, cv::Mat  Tag_image ){
 			cv::Mat  Node_image  = cv::Mat::zeros(info.height, info.width, CV_8UC1);
@@ -174,9 +200,11 @@ class ROS_handler
 				int x = round(current_node_position.real() );
 				int y = round(current_node_position.imag() );
 
-				Node_image.at<uchar>(cv::Point(x, info.height - y)) = Tag_image.at<uchar>(cv::Point(x,y));
+				int current_tag = Tag_image.at<uchar>(cv::Point(x,info.height - y));
+
+				Node_image.at<uchar>(cv::Point(x, info.height - y)) = current_tag;
 				
-				(*it)->info.region_label = Tag_image.at<uchar>(cv::Point(x,y)) -1;
+				(*it)->info.region_label = current_tag -1;
 			}
 
 			if(false){
@@ -185,9 +213,9 @@ class ROS_handler
 			else{
 				Node_image=Node_image>0;
 				cv::dilate(Node_image, Node_image, cv::Mat(), cv::Point(-1,-1), 3, cv::BORDER_CONSTANT, cv::morphologyDefaultBorderValue() );			
-				cv::flip(Tag_image,Tag_image,0);
 				Tag_image.copyTo(image_test , ~Node_image);
 				return  image_test;
+//				return  Node_image;
 			}
 		}
 /////////////////						
