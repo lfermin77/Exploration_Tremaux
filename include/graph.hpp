@@ -1,6 +1,9 @@
 #include <limits>
 #include <queue>
-#include "visualization_msgs/Marker.h"
+#include <list>
+#include <complex>
+#include <iostream>
+//#include "visualization_msgs/Marker.h"
 
 
 
@@ -67,8 +70,8 @@ class UtilityGraph{
 		
 	void print_nodes();
 	Node_iter find_point_in_node(std::complex<double> query_position);
-	void build_graph_from_edges(std::vector<geometry_msgs::Point> edge_markers);
-	int update_distances(geometry_msgs::Point current_pos);
+//	void build_graph_from_edges(std::vector<geometry_msgs::Point> edge_markers);
+	int update_distances(std::complex<double> current_position);
 
 	std::list <Edge*> find_edges_between_regions();	
 	void evaluate_regions_connectivity(int number_of_regions);

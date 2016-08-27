@@ -140,9 +140,12 @@ class ROS_handler
 			cv::Mat grad;
 			
 			UtilityGraph GraphSLAM;
-			GraphSLAM.build_graph_from_edges(edges);
+//			GraphSLAM.build_graph_from_edges(edges);
+			build_graph_from_edges(edges, GraphSLAM);
 			if(data_ready){
-				GraphSLAM.update_distances(Last_node);
+//				GraphSLAM.update_distances(Last_node);
+				std::complex<double> complex_last_node(Last_node.x, Last_node.y);
+				GraphSLAM.update_distances(	complex_last_node );
 				
 				grad = graph2image(GraphSLAM, map_info, image_tagged);
 				
@@ -175,18 +178,6 @@ class ROS_handler
 /////////////////////////
 //// UTILITY
 /////////////////////////
-		void graph_iteration(){
-			std::cout << "Edges received "<< edges.size() << std::endl;
-			UtilityGraph GraphSLAM;
-			GraphSLAM.build_graph_from_edges(edges);
-			if(edges.size() > 0){
-				GraphSLAM.update_distances(Last_node);
-				GraphSLAM.print_nodes();
-			}
-//			cout << "Label of closest node "<< GraphSLAM.update_distances(Last_node) << endl;			
-//			GraphSLAM.print_nodes();
-		}
-
 		cv::Mat graph2image(UtilityGraph &GraphSLAM, nav_msgs::MapMetaData info, cv::Mat  Tag_image ){
 			cv::Mat  Node_image  = cv::Mat::zeros(info.height, info.width, CV_8UC1);
 			cv::Mat  image_test  = cv::Mat::zeros(info.height, info.width, CV_8UC1);
@@ -308,6 +299,76 @@ class ROS_handler
 				
 
 		}
+
+
+		int build_graph_from_edges(std::vector<geometry_msgs::Point> edge_markers, UtilityGraph& UGraph){
+			
+			int number_of_edges = edge_markers.size()/2;				
+			int labeler=0;
+			
+			Node* from_Node_ptr; 
+			Node* to_Node_ptr;   
+					
+			for (int i=0; i < number_of_edges;i++){
+			
+		//		cout << "Insert nodes"<< endl;
+				// FROM
+				std::complex<double> FROM_position(edge_markers[2*i].x, edge_markers[2*i].y);			
+				Node_iter FROM_node_iter = UGraph.find_point_in_node(FROM_position);		
+				if(FROM_node_iter == UGraph.Nodes.end() ){//couldn't find, insert new node
+					labeler++;
+					from_Node_ptr =new Node;
+					from_Node_ptr->info.position = FROM_position;
+					from_Node_ptr->info.label = labeler;
+					UGraph.Nodes.push_back(from_Node_ptr);	
+				}			
+				else from_Node_ptr = *FROM_node_iter;
+				
+				// TO
+				std::complex<double> TO_position(edge_markers[2*i+1].x, edge_markers[2*i+1].y);			
+				Node_iter TO_node_iter = UGraph.find_point_in_node(TO_position);			
+				if(TO_node_iter == UGraph.Nodes.end() ){//couldn't find, insert new node
+					labeler++;
+					to_Node_ptr = new Node;
+					to_Node_ptr->info.position = TO_position;
+					to_Node_ptr->info.label = labeler;
+					UGraph.Nodes.push_back(to_Node_ptr);				
+				}			
+				else to_Node_ptr = *TO_node_iter;
+		
+		
+		//		cout << "Insert Edges"<<endl;
+				Edge* current_edge = new Edge;
+				current_edge->info.distance = abs(FROM_position - TO_position);
+				current_edge->info.label = i;
+				
+				current_edge->from = from_Node_ptr;
+				current_edge->to   = to_Node_ptr;  
+				
+				UGraph.Edges.push_back(current_edge);
+			
+		//		cout << "Insert Linked Information"<<endl;
+				Connections connecting_from;
+				connecting_from.linker = current_edge;			
+				connecting_from.to = to_Node_ptr;
+				from_Node_ptr->connected.push_back(connecting_from);
+				
+				Connections connecting_to;
+				connecting_to.linker = current_edge;			
+				connecting_to.to = from_Node_ptr;
+				to_Node_ptr->connected.push_back(connecting_to);
+				//Edges
+				current_edge->from = from_Node_ptr;
+				UGraph.Edges.back()->to = to_Node_ptr;
+			}
+			std::cout << "Found " << labeler  <<" nodes"<< std::endl;
+
+			return 1;
+		}
+
+
+
+
 
 
 };
