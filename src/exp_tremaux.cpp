@@ -142,19 +142,20 @@ class ROS_handler
 			UtilityGraph GraphSLAM;
 //			GraphSLAM.build_graph_from_edges(edges);
 			build_graph_from_edges(edges, GraphSLAM);
+			
+
 			if(data_ready){
 //				GraphSLAM.update_distances(Last_node);
-				std::complex<double> complex_last_node(Last_node.x, Last_node.y);
-				GraphSLAM.update_distances(	complex_last_node );
-				
-				grad = graph2image(GraphSLAM, map_info, image_tagged);
-				
+
+				grad = graph2image(GraphSLAM, map_info, image_tagged);				
 				find_contour_connectivity_and_frontier(image_tagged, image_map);
 //				GraphSLAM.print_nodes();
 				GraphSLAM.find_edges_between_regions();
-				double min, max;
-				cv::minMaxLoc(image_tagged, &min, &max);
-				GraphSLAM.evaluate_regions_connectivity( max);
+
+				std::complex<double> complex_last_node(Last_node.x, Last_node.y);				
+				GraphSLAM.update_distances(	complex_last_node );
+				
+				GraphSLAM.evaluate_regions_connectivity();
 			}
 			else{
 				grad = image_tagged;

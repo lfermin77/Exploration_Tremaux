@@ -131,20 +131,30 @@ std::list <Edge*> UtilityGraph::find_edges_between_regions(){
 	return connecting_edges;
 }
 
-void UtilityGraph::evaluate_regions_connectivity(int number_of_regions){
+void UtilityGraph::evaluate_regions_connectivity(){
 	std::vector < std::list <Node*> > Nodes_per_region;
-	Nodes_per_region.resize(number_of_regions);
+//	Nodes_per_region.resize(number_of_regions);
 	
 	std::vector < std::vector < std::list <Node*> > >   Regions_in_Graph;
 	std::vector < std::list <Node*> >    Sub_Regions_in_Regions;
 	Regions_in_Graph.clear();
 	
+	int number_of_labels = -1;
 	// Order Nodes per Region
+	for(Node_iter it = Nodes.begin(); it != Nodes.end(); it++){
+		int region_label = (*it)->info.region_label;
+		if(region_label > number_of_labels) 
+			number_of_labels = region_label;
+	}
+	Nodes_per_region.resize( number_of_labels + 1);
+
+	
 	for(Node_iter it = Nodes.begin(); it != Nodes.end(); it++){
 		int region_label = (*it)->info.region_label;
 		Nodes_per_region[region_label].push_back(*it);
 	}
-	
+
+		
 	for(int i=0; i< Nodes_per_region.size();i++){
 		int sub_region=0;
 		std::list <Node*> Remaining_Nodes, List_of_Nodes = Nodes_per_region[i], Nodes_in_sub_Region;
