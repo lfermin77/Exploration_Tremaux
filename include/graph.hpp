@@ -1,6 +1,7 @@
 #include <limits>
 #include <queue>
 #include <list>
+#include <map>
 #include <complex>
 #include <iostream>
 //#include "visualization_msgs/Marker.h"

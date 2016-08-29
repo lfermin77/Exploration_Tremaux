@@ -81,8 +81,9 @@ class ROS_handler
 			cv::Mat grad, img(map->info.height, map->info.width, CV_8U);
 			img.data = (unsigned char *)(&(map->data[0]) );
 			cv::flip(img,img,0);
-			image_map = img;
+			image_map = img.clone();
 			map_received = true;
+			
 		}
 
 
@@ -131,7 +132,7 @@ class ROS_handler
 			  return;
 			}
 			
-			image_tagged = temporal_ptr->image;
+			image_tagged = temporal_ptr->image.clone();
 			tagged_image_received = true;
 			
 			image_tagged.convertTo(image_tagged, CV_8UC1);
@@ -140,15 +141,13 @@ class ROS_handler
 			cv::Mat grad;
 			
 			UtilityGraph GraphSLAM;
-//			GraphSLAM.build_graph_from_edges(edges);
 			build_graph_from_edges(edges, GraphSLAM);
-			
 
 			if(data_ready){
-//				GraphSLAM.update_distances(Last_node);
+				cv::Mat occupancy_image = image_map.clone();
 
-				grad = graph2image(GraphSLAM, map_info, image_tagged);				
-				find_contour_connectivity_and_frontier(image_tagged, image_map);
+				grad =graph2image(GraphSLAM, map_info, image_tagged);				
+				find_contour_connectivity_and_frontier(image_tagged, occupancy_image);
 //				GraphSLAM.print_nodes();
 				GraphSLAM.find_edges_between_regions();
 
@@ -160,7 +159,7 @@ class ROS_handler
 			else{
 				grad = image_tagged;
 			}
-
+			
 			cv_ptr->encoding = sensor_msgs::image_encodings::TYPE_32FC1;			grad.convertTo(grad, CV_32F);
 			grad.copyTo(cv_ptr->image);////most important
 					
@@ -212,12 +211,14 @@ class ROS_handler
 		}
 /////////////////						
 		typedef std::map < std::set<int> , std::vector<cv::Point>   > edge_points_mapper;
-		void find_contour_connectivity_and_frontier(cv::Mat  Tag_image, cv::Mat  original_image){
+		
+		cv::Mat find_contour_connectivity_and_frontier(cv::Mat  Tag_image, cv::Mat  original_image){
 			
 			UtilityGraph Region_Graph;
-			int window_size=3;
+			int window_size=1;
 			
-
+			cv::Mat  Frontier_image  = cv::Mat::zeros(original_image.size(), CV_8UC1);
+			
 			edge_points_mapper mapping_set_to_point_array, mapping_frontier_to_point_array;
 			for (int i=window_size;i < Tag_image.size().width- window_size ;i++){
 				for (int j=window_size;j < Tag_image.size().height - window_size ;j++){
@@ -237,16 +238,17 @@ class ROS_handler
 								connections_in_region.insert( tag -1 );
 								frontier_connections.insert( tag -1 );
 							}
-							if ( frontier==255) frontier_connections.insert( -1 );
+							if ( frontier==255 &&  tag==0) frontier_connections.insert( -1 );
 
 						}
 					}
 					//////////////////
-				if(connections_in_region.size()>1){					
+				if(connections_in_region.size()==2){					
 					mapping_set_to_point_array[connections_in_region].push_back(window_center);
 				}
-				if(frontier_connections.size()>1 &&  ( (*frontier_connections.begin())==-1)  ){					
+				if(frontier_connections.size()==2 &&  ( (*frontier_connections.begin())==-1) ){					
 					mapping_frontier_to_point_array[frontier_connections].push_back(window_center);
+//					Frontier_image.at<uchar>( window_center ) = 255;
 				}
 				}
 			}
@@ -275,24 +277,31 @@ class ROS_handler
 			//*/
 			
 //*
+			std::cout << "Frontiers size is: "<<  mapping_frontier_to_point_array.size() << std::endl;
 			for (edge_points_mapper::iterator it2 = mapping_frontier_to_point_array.begin(); it2 != mapping_frontier_to_point_array.end(); it2 ++){
+				
+				if(it2->first.size() <3){
+					std::cout << "Frontiers  are: ";
+					std::set<int> current_connections_set = it2->first ;
+					for (std::set<int>::iterator it = current_connections_set.begin(); it != current_connections_set.end(); it ++){
+						std::cout <<" " << *it;
+					}
+					
+					std::vector<cv::Point> current_points = it2->second;
+					cv::Point average_point(0,0);	
+					for (std::vector<cv::Point>::iterator it = current_points.begin(); it != current_points.end(); it ++){
+						average_point += *it;
+						Frontier_image.at<uchar>( *it ) = 255;
+					}		
+					std::cout <<" at position (" << average_point.x/current_points.size() << " , " << average_point.y/current_points.size() << ") size: "<< current_points.size();
+					
+					std::cout << std::endl;
 
-				std::cout << "Frontiers  are: ";
-				std::set<int> current_connections_set = it2->first ;
-				for (std::set<int>::iterator it = current_connections_set.begin(); it != current_connections_set.end(); it ++){
-					std::cout <<" " << *it;
 				}
-				
-				std::vector<cv::Point> current_points = it2->second;
-				cv::Point average_point(0,0);
 
-				for (std::vector<cv::Point>::iterator it = current_points.begin(); it != current_points.end(); it ++){
-					average_point += *it;
-				}		
-				std::cout <<" at position (" << average_point.x/current_points.size() << " , " << average_point.y/current_points.size() << ")";
-				
-				std::cout << std::endl;
 			}
+			return Frontier_image;
+//			return original_image;
 			//*/
 
 
@@ -301,7 +310,7 @@ class ROS_handler
 
 		}
 
-
+/////////////////////////////////////////////////////////////////
 		int build_graph_from_edges(std::vector<geometry_msgs::Point> edge_markers, UtilityGraph& UGraph){
 			
 			int number_of_edges = edge_markers.size()/2;				

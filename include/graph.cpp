@@ -131,42 +131,31 @@ std::list <Edge*> UtilityGraph::find_edges_between_regions(){
 	return connecting_edges;
 }
 
+
 void UtilityGraph::evaluate_regions_connectivity(){
-	std::vector < std::list <Node*> > Nodes_per_region;
-//	Nodes_per_region.resize(number_of_regions);
+	std::map < int, std::list <Node*> > labels_to_nodes;
 	
 	std::vector < std::vector < std::list <Node*> > >   Regions_in_Graph;
 	std::vector < std::list <Node*> >    Sub_Regions_in_Regions;
-	Regions_in_Graph.clear();
-	
-	int number_of_labels = -1;
-	// Order Nodes per Region
-	for(Node_iter it = Nodes.begin(); it != Nodes.end(); it++){
-		int region_label = (*it)->info.region_label;
-		if(region_label > number_of_labels) 
-			number_of_labels = region_label;
-	}
-	Nodes_per_region.resize( number_of_labels + 1);
-
+	Regions_in_Graph.clear();	
 	
 	for(Node_iter it = Nodes.begin(); it != Nodes.end(); it++){
 		int region_label = (*it)->info.region_label;
-		Nodes_per_region[region_label].push_back(*it);
+		labels_to_nodes[region_label].push_back(*it);
 	}
-
 		
-	for(int i=0; i< Nodes_per_region.size();i++){
+	for(std::map < int, std::list <Node*> >::iterator map_it = labels_to_nodes.begin(); map_it != labels_to_nodes.end() ; map_it++){
 		int sub_region=0;
-		std::list <Node*> Remaining_Nodes, List_of_Nodes = Nodes_per_region[i], Nodes_in_sub_Region;
+		std::list <Node*> Remaining_Nodes, List_of_Nodes = map_it->second, Nodes_in_sub_Region;
 		
 		Sub_Regions_in_Regions.clear();
 		
-		while( List_of_Nodes.size() > 0){
+		while( List_of_Nodes.size() > 0){// Breadth first
 			evaluate_list_connectivity(List_of_Nodes, sub_region);
 			Remaining_Nodes.clear();
 			Nodes_in_sub_Region.clear();
 
-			for(Node_iter it = Nodes_per_region[i].begin(); it != Nodes_per_region[i].end(); it++){		
+			for(Node_iter it = map_it->second.begin(); it != map_it->second.end(); it++){		
 				if( (*it)->info.sub_region == -1 ){
 					Remaining_Nodes.push_back(*it);
 				}
@@ -183,13 +172,16 @@ void UtilityGraph::evaluate_regions_connectivity(){
 	}
 
 	std::cout << "The graph is decomposed in " << Regions_in_Graph.size()<<" Regions" <<std::endl;
+		std::map < int, std::list <Node*> >::iterator map_it = labels_to_nodes.begin();
 	for(int i=0; i< Regions_in_Graph.size(); i++){
-		std::cout << " Region: " << i <<" with "<<Regions_in_Graph[i].size()<<" subregions" <<std::endl;
+		
+		std::cout << " Region: " << map_it->first <<" with "<<Regions_in_Graph[i].size()<<" subregions" <<std::endl;
 		std::vector < std::list <Node*> > Subregions_Inside = Regions_in_Graph[i];
 		
 		for(int j=0; j< Subregions_Inside.size(); j++){
 			std::cout << "   Sub_Region: " << j <<" with "<< Subregions_Inside[j].size()<<" nodes"<<std::endl;
 		}
+		map_it++;
 	}
 
 }
