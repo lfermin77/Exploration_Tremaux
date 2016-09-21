@@ -76,7 +76,8 @@ class UtilityGraph{
 	std::list <Edge*> find_edges_between_regions();	
 	void evaluate_regions_connectivity();
 	void evaluate_list_connectivity(std::list <Node*> list_in, int name);
-
+	void Closest_subregions(std::list <Node*> node_pair, int region);
+	std::pair <Node*,Node*> closest_node_subregions(std::vector<Node*> path_1, std::vector<Node*> path_2);
 		
 };
 

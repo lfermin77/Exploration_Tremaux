@@ -213,5 +213,36 @@ void UtilityGraph::evaluate_list_connectivity(std::list <Node*> list_in, int nam
 }
 
 
+void UtilityGraph::Closest_subregions(std::list <Node*> node_pair, int region){
+	std::map < int , std::vector<Node*> > subregion_nodes;
+	
+	for(std::list <Node*>::iterator node_it = Nodes.begin(); node_it != Nodes.end(); node_it++  ){
+		if ( (*node_it)->info.region_label == region){
+			subregion_nodes[ (*node_it)->info.sub_region ].push_back( *node_it  ); 
+		}		
+	}
+	/////////
+	for(int i=1; i < subregion_nodes.size() ; i++){
+		for(int j=0; j < i;j++){
+			int a=1;
+			
+		}
+	}
+	/////////
+}
+
+
+std::pair < Node* , Node* > UtilityGraph::closest_node_subregions(std::vector<Node*> path_1, std::vector<Node*> path_2){
+	int a=1;
+	std::pair < Node* , Node* > pepe;
+	pepe.first = path_1.back();
+	pepe.second = path_2.back();
+	
+	return pepe;
+}	
+
+
+
+
 
 
