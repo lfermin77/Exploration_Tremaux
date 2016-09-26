@@ -83,7 +83,7 @@ int UtilityGraph::update_distances(	std::complex<double> current_position ){
 	Minimal_Node->predecesor = NULL;
 	Minimal_Node->info.distance_from_origin = 0;
 	
-	std::cout << "Minimun distace found, is  " << Minimal_Node->info.label << std::endl;
+//	std::cout << "Minimun distace found, is  " << Minimal_Node->info.label << std::endl;
 
 	while(Unvisited_Nodes.size() > 0){
 		Node_iter eliminate_iter = Unvisited_Nodes.begin();
@@ -223,9 +223,10 @@ void UtilityGraph::Closest_subregions(std::list <Node*> node_pair, int region){
 	}
 	/////////
 	for(int i=1; i < subregion_nodes.size() ; i++){
-		for(int j=0; j < i;j++){
-			int a=1;
-			
+		std::cout << "Subregion "<< i << " connected to " << std::endl;
+		for(int j=0; j < i; j++){
+			std::cout << "  "<< j ;//<< std::endl;
+			closest_node_subregions(subregion_nodes[i] , subregion_nodes[j] );
 		}
 	}
 	/////////
@@ -233,12 +234,25 @@ void UtilityGraph::Closest_subregions(std::list <Node*> node_pair, int region){
 
 
 std::pair < Node* , Node* > UtilityGraph::closest_node_subregions(std::vector<Node*> path_1, std::vector<Node*> path_2){
-	int a=1;
-	std::pair < Node* , Node* > pepe;
-	pepe.first = path_1.back();
-	pepe.second = path_2.back();
 	
-	return pepe;
+	std::pair < Node* , Node* > minimum_pair;
+	float minimun_distance = std::numeric_limits<float>::infinity();
+
+	//Slow approach
+	for (std::vector<Node*>::iterator path_1_iter =path_1.begin(); path_1_iter != path_1.end(); path_1_iter ++){
+		for (std::vector<Node*>::iterator path_2_iter =path_2.begin(); path_2_iter != path_2.end(); path_2_iter ++){
+			float distance_between_nodes = abs( (*path_1_iter)->info.position - (*path_2_iter)->info.position );
+			if (distance_between_nodes < minimun_distance){
+				minimum_pair.first  = *path_1_iter;
+				minimum_pair.second = *path_2_iter;
+				minimun_distance = distance_between_nodes;
+			}
+			
+		}
+	}
+		std::cout << " at "<< minimun_distance << " m" << std::endl;
+	
+	return minimum_pair;
 }	
 
 

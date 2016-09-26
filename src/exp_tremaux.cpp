@@ -15,6 +15,7 @@
 
 //Graph
 #include "graph.hpp"
+#include "graph_Regions.hpp"
 
 
 
@@ -155,6 +156,15 @@ class ROS_handler
 				GraphSLAM.update_distances(	complex_last_node );
 				
 				GraphSLAM.evaluate_regions_connectivity();
+
+				double min, max;
+				cv::minMaxLoc(image_tagged, &min, &max);
+				
+				std::list <Node*> node_pairs;
+				for(int i=0;i < max; i++){
+					std::cout << "Region "<< i << " analysis " << std::endl;
+					GraphSLAM.Closest_subregions(node_pairs,i);
+				}
 			}
 			else{
 				grad = image_tagged;
