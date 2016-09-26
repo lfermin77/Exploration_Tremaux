@@ -333,7 +333,9 @@ class ROS_handler
 			
 		//		cout << "Insert nodes"<< endl;
 				// FROM
-				std::complex<double> FROM_position(edge_markers[2*i].x, edge_markers[2*i].y);			
+				std::complex<double> FROM_position(edge_markers[2*i].x, edge_markers[2*i].y);
+				std::cout << "label " << 100*edge_markers[2*i].z << std::endl;
+							
 				Node_iter FROM_node_iter = UGraph.find_point_in_node(FROM_position);		
 				if(FROM_node_iter == UGraph.Nodes.end() ){//couldn't find, insert new node
 					labeler++;

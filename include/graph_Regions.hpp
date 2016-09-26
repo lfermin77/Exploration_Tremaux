@@ -24,7 +24,7 @@ class Region_Node{
 	private:
 	int info;	
 	Region_Node* predecesor;	
-	std::vector<Region_Edge> connected;
+	std::vector<Region_Edge*> connected;
 };
 ////////////////////////////////////////////////////
 

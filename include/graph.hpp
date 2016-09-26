@@ -29,32 +29,34 @@ class edge_info{
 	
 	edge_info();
 };
+/////////////////////
+class Node;
+
+class Edge{
+	public:
+	edge_info info;
+	Node*  from;
+	Node*  to;
+};
+
+///////////////////
+struct Connections{
+	Edge* linker;
+	Node* to;
+};
 
 ///////////////////////////
 class Node{
 	public:
 
-	class nested_Edge{
-		public:
-		edge_info info;
-		Node*  from;
-		Node*  to;
-	};
-	
-	struct nested_connections{
-		nested_Edge* linker;
-		Node* to;
-	};
-
 	node_info info;	
 	Node* predecesor;	
-	std::vector<nested_connections> connected;
+	std::vector<Connections> connected;
 	
 	Node();	
 	void print_node_label_and_pos();
 };
-typedef Node::nested_Edge         Edge;
-typedef Node::nested_connections  Connections;
+
 
 
 ////////////////////////////////////////////////////
