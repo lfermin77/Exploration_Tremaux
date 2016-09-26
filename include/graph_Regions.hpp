@@ -11,26 +11,22 @@
 
 ////Graph as adjacency list nested class
 
+class Region_Node; // forward declaration
 
-
-class Node;
 class Region_Edge{
 	private:
 	int info;
-	Node*  from;
-	Node*  to;
+	Region_Node*  from;
+	Region_Node*  to;
 };
 ///////////////////////////
 class Region_Node{	
 	private:
 	int info;	
-	Node* predecesor;	
-	std::vector<Edge> connected;
+	Region_Node* predecesor;	
+	std::vector<Region_Edge> connected;
 };
-
-
 ////////////////////////////////////////////////////
-
 
 class Region_Graph{
 	public:
