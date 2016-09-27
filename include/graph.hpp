@@ -4,8 +4,11 @@
 #include <map>
 #include <complex>
 #include <iostream>
-//#include "visualization_msgs/Marker.h"
 
+
+#include <opencv2/imgproc/imgproc.hpp>
+#include "visualization_msgs/Marker.h"
+#include "nav_msgs/GetMap.h"
 
 
 
@@ -58,6 +61,37 @@ class Node{
 };
 
 
+/////////////////////////////////////////////////
+/////REGION GRAPH
+
+class Region_Node; //forward declaration
+class Region_Edge{
+	private:
+	int info;
+	std::list <Edge*> Edges_in_border;
+	std::vector<cv::Point> frontier;
+	float distance_from_origin;
+	
+	Region_Node*  from;
+	Region_Node*  to;
+};
+///////////////////////////
+class Region_Node{	
+	private:
+	int info;	
+	std::list < std::list <Node*> > sub_graphs;
+	Region_Node* predecesor;	
+	std::vector<Region_Edge*> connected;
+};
+////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
 
 ////////////////////////////////////////////////////
 
@@ -66,8 +100,8 @@ typedef std::list<Edge*>::iterator Edge_iter;
 
 class UtilityGraph{
 	public:
-	std::list <Node*> Nodes;
-	std::list <Edge*> Edges;
+	
+	
 
 	~UtilityGraph();
 		
@@ -80,6 +114,17 @@ class UtilityGraph{
 	void evaluate_list_connectivity(std::list <Node*> list_in, int name);
 	void Closest_subregions(std::list <Node*> node_pair, int region);
 	std::pair <Node*,Node*> closest_node_subregions(std::vector<Node*> path_1, std::vector<Node*> path_2);
+	
+	int build_graph_from_edges(std::vector<geometry_msgs::Point> edge_markers);
+	cv::Mat graph2image(nav_msgs::MapMetaData info, cv::Mat  Tag_image );
+	
+	protected:
+	std::list <Node*> Nodes;
+	std::list <Edge*> Edges;
+	
+	std::list <Region_Node*> Region_Nodes;
+	std::list <Region_Edge*> Region_Edges;
+	
 		
 };
 

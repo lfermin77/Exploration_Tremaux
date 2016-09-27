@@ -15,7 +15,7 @@
 
 //Graph
 #include "graph.hpp"
-#include "graph_Regions.hpp"
+
 
 
 
@@ -142,12 +142,13 @@ class ROS_handler
 			cv::Mat grad;
 			
 			UtilityGraph GraphSLAM;
-			build_graph_from_edges(edges, GraphSLAM);
+//			build_graph_from_edges(edges, GraphSLAM);
+			GraphSLAM.build_graph_from_edges(edges);
 
 			if(data_ready){
 				cv::Mat occupancy_image = image_map.clone();
 
-				grad =graph2image(GraphSLAM, map_info, image_tagged);				
+				grad =GraphSLAM.graph2image(map_info, image_tagged);				
 				find_contour_connectivity_and_frontier(image_tagged, occupancy_image);
 //				GraphSLAM.print_nodes();
 				GraphSLAM.find_edges_between_regions();
@@ -188,38 +189,8 @@ class ROS_handler
 /////////////////////////
 //// UTILITY
 /////////////////////////
-		cv::Mat graph2image(UtilityGraph &GraphSLAM, nav_msgs::MapMetaData info, cv::Mat  Tag_image ){
-			cv::Mat  Node_image  = cv::Mat::zeros(info.height, info.width, CV_8UC1);
-			cv::Mat  image_test  = cv::Mat::zeros(info.height, info.width, CV_8UC1);
-			
-			std::complex<double> origin(info.origin.position.x, info.origin.position.y);	
 
-			for(Node_iter it = GraphSLAM.Nodes.begin(); it != GraphSLAM.Nodes.end(); it++ ){
-				std::complex<double> current_node_position = (*it)->info.position;
 
-				current_node_position = (current_node_position - origin)/(double)info.resolution;
-				int x = round(current_node_position.real() );
-				int y = round(current_node_position.imag() );
-
-				int current_tag = Tag_image.at<uchar>(cv::Point(x,info.height - y));
-
-				Node_image.at<uchar>(cv::Point(x, info.height - y)) = current_tag;
-				
-				(*it)->info.region_label = current_tag -1;
-			}
-
-			if(false){
-				return  Node_image;
-			}
-			else{
-				Node_image=Node_image>0;
-				cv::dilate(Node_image, Node_image, cv::Mat(), cv::Point(-1,-1), 3, cv::BORDER_CONSTANT, cv::morphologyDefaultBorderValue() );			
-				Tag_image.copyTo(image_test , ~Node_image);
-				return  image_test;
-//				return  Node_image;
-			}
-		}
-/////////////////						
 		typedef std::map < std::set<int> , std::vector<cv::Point>   > edge_points_mapper;
 		
 		cv::Mat find_contour_connectivity_and_frontier(cv::Mat  Tag_image, cv::Mat  original_image){
@@ -320,73 +291,6 @@ class ROS_handler
 
 		}
 
-/////////////////////////////////////////////////////////////////
-		int build_graph_from_edges(std::vector<geometry_msgs::Point> edge_markers, UtilityGraph& UGraph){
-			
-			int number_of_edges = edge_markers.size()/2;				
-			int labeler=0;
-			
-			Node* from_Node_ptr; 
-			Node* to_Node_ptr;   
-					
-			for (int i=0; i < number_of_edges;i++){
-			
-		//		cout << "Insert nodes"<< endl;
-				// FROM
-				std::complex<double> FROM_position(edge_markers[2*i].x, edge_markers[2*i].y);
-//				std::cout << "label " << 100*edge_markers[2*i].z << std::endl;
-							
-				Node_iter FROM_node_iter = UGraph.find_point_in_node(FROM_position);		
-				if(FROM_node_iter == UGraph.Nodes.end() ){//couldn't find, insert new node
-					labeler++;
-					from_Node_ptr =new Node;
-					from_Node_ptr->info.position = FROM_position;
-					from_Node_ptr->info.label = 100*edge_markers[2*i].z;//labeler;
-					UGraph.Nodes.push_back(from_Node_ptr);	
-				}			
-				else from_Node_ptr = *FROM_node_iter;
-				
-				// TO
-				std::complex<double> TO_position(edge_markers[2*i+1].x, edge_markers[2*i+1].y);			
-				Node_iter TO_node_iter = UGraph.find_point_in_node(TO_position);			
-				if(TO_node_iter == UGraph.Nodes.end() ){//couldn't find, insert new node
-					labeler++;
-					to_Node_ptr = new Node;
-					to_Node_ptr->info.position = TO_position;
-					to_Node_ptr->info.label = 100*edge_markers[2*i+1].z;//labeler;
-					UGraph.Nodes.push_back(to_Node_ptr);				
-				}			
-				else to_Node_ptr = *TO_node_iter;
-		
-		
-		//		cout << "Insert Edges"<<endl;
-				Edge* current_edge = new Edge;
-				current_edge->info.distance = abs(FROM_position - TO_position);
-				current_edge->info.label = i;
-				
-				current_edge->from = from_Node_ptr;
-				current_edge->to   = to_Node_ptr;  
-				
-				UGraph.Edges.push_back(current_edge);
-			
-		//		cout << "Insert Linked Information"<<endl;
-				Connections connecting_from;
-				connecting_from.linker = current_edge;			
-				connecting_from.to = to_Node_ptr;
-				from_Node_ptr->connected.push_back(connecting_from);
-				
-				Connections connecting_to;
-				connecting_to.linker = current_edge;			
-				connecting_to.to = from_Node_ptr;
-				to_Node_ptr->connected.push_back(connecting_to);
-				//Edges
-				current_edge->from = from_Node_ptr;
-				UGraph.Edges.back()->to = to_Node_ptr;
-			}
-			std::cout << "Found " << labeler  <<" nodes"<< std::endl;
-
-			return 1;
-		}
 
 
 
