@@ -141,6 +141,7 @@ class ROS_handler
 			bool data_ready = map_received & path_received & graph_received & tagged_image_received;	
 			cv::Mat grad;
 			
+			
 			UtilityGraph GraphSLAM;
 //			build_graph_from_edges(edges, GraphSLAM);
 			GraphSLAM.build_graph_from_edges(edges);
@@ -150,6 +151,7 @@ class ROS_handler
 
 				grad =GraphSLAM.graph2image(map_info, image_tagged);				
 				find_contour_connectivity_and_frontier(image_tagged, occupancy_image);
+//				GraphSLAM.build_region_graph(image_tagged, occupancy_image);
 //				GraphSLAM.print_nodes();
 				GraphSLAM.find_edges_between_regions();
 

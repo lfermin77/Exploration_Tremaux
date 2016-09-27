@@ -66,7 +66,7 @@ class Node{
 
 class Region_Node; //forward declaration
 class Region_Edge{
-	private:
+	public:
 	int info;
 	std::list <Edge*> Edges_in_border;
 	std::vector<cv::Point> frontier;
@@ -77,8 +77,8 @@ class Region_Edge{
 };
 ///////////////////////////
 class Region_Node{	
-	private:
-	int info;	
+	public:
+	Node* Node_Center;
 	std::list < std::list <Node*> > sub_graphs;
 	Region_Node* predecesor;	
 	std::vector<Region_Edge*> connected;
@@ -117,6 +117,9 @@ class UtilityGraph{
 	
 	int build_graph_from_edges(std::vector<geometry_msgs::Point> edge_markers);
 	cv::Mat graph2image(nav_msgs::MapMetaData info, cv::Mat  Tag_image );
+	cv::Mat build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image);
+
+
 	
 	protected:
 	std::list <Node*> Nodes;
