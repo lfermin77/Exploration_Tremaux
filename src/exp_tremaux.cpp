@@ -121,6 +121,7 @@ class ROS_handler
 //////////////
 		void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 		{
+			std::cout << "New Image"<< std::endl;
 			cv_bridge::CvImagePtr temporal_ptr;
 
 			try
@@ -168,6 +169,13 @@ class ROS_handler
 					std::cout << "Region "<< i << " analysis " << std::endl;
 					GraphSLAM.Closest_subregions(node_pairs,i);
 				}
+				
+				RegionGraph Tremaux_Graph;
+				Tremaux_Graph.build_Region_Graph(edges, map_info, image_tagged, occupancy_image);
+				Tremaux_Graph.print_Region_Atributes();
+				
+				
+				
 			}
 			else{
 				grad = image_tagged;

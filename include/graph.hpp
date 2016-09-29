@@ -4,6 +4,7 @@
 #include <map>
 #include <complex>
 #include <iostream>
+#include <unordered_map>
 
 
 #include <opencv2/imgproc/imgproc.hpp>
@@ -67,7 +68,6 @@ class Node{
 class Region_Node; //forward declaration
 class Region_Edge{
 	public:
-	int info;
 	std::list <Edge*> Edges_in_border;
 	std::vector<cv::Point> frontier;
 	float distance_from_origin;
@@ -79,8 +79,10 @@ class Region_Edge{
 class Region_Node{	
 	public:
 	Node* Node_Center;
+	std::list <Node*> nodes_inside;
 	std::list < std::list <Node*> > sub_graphs;
 	Region_Node* predecesor;	
+	std::vector<cv::Point> contour;
 	std::vector<Region_Edge*> connected;
 };
 ////////////////////////////////////////////////////
@@ -119,6 +121,8 @@ class UtilityGraph{
 	cv::Mat graph2image(nav_msgs::MapMetaData info, cv::Mat  Tag_image );
 	cv::Mat build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image);
 
+	int build_SLAM_graph_from_edges(std::vector<geometry_msgs::Point> edge_markers);
+
 
 	
 	protected:
@@ -132,4 +136,33 @@ class UtilityGraph{
 };
 
 
+typedef std::map < std::set<int> , std::vector<cv::Point>   > edge_points_mapper;
+typedef std::map < int , std::vector<cv::Point>   > region_points_mapper;
+
+typedef	std::unordered_map <int,Node*> NodeMapper;
+typedef	std::unordered_map <int,Edge*> EdgeMapper;
+typedef	std::unordered_map <int,Region_Node*> RegionNodeMapper;
+typedef	std::unordered_map <int,Region_Edge*> RegionEdgeMapper;
+	
+
+//////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////
+
+class RegionGraph{
+	public:
+	
+	~RegionGraph();
+	int build_Region_Graph(std::vector<geometry_msgs::Point> edge_markers, nav_msgs::MapMetaData info, cv::Mat  Tag_image, cv::Mat  original_image);
+	void print_Region_Atributes();
+
+	
+	protected:
+	std::unordered_map <int,Node*> Nodes_Map;
+	std::unordered_map <int,Edge*> Edges_Map;
+	
+	std::unordered_map <int,Region_Node*> Region_Nodes_Map;
+	std::unordered_map <int,Region_Edge*> Region_Edges_Map;
+	
+		
+};
 
