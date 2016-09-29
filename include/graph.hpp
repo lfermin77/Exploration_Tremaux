@@ -68,19 +68,22 @@ class Node{
 class Region_Node; //forward declaration
 class Region_Edge{
 	public:
-	std::list <Edge*> Edges_in_border;
+	std::vector <Edge*> Edges_in_border;
 	std::vector<cv::Point> frontier;
-	float distance_from_origin;
+	float shortest_distance;
+	std::set<int> Nodes_ids;
 	
-	Region_Node*  from;
-	Region_Node*  to;
+	Region_Node*  First_Region;
+	Region_Node*  Second_Region;
 };
 ///////////////////////////
 class Region_Node{	
 	public:
+	int id;
 	Node* Node_Center;
 	std::list <Node*> nodes_inside;
 	std::list < std::list <Node*> > sub_graphs;
+	float distance_from_origin;
 	Region_Node* predecesor;	
 	std::vector<cv::Point> contour;
 	std::vector<Region_Edge*> connected;
@@ -134,7 +137,8 @@ class UtilityGraph{
 	
 		
 };
-
+///////////////////////////////////////
+///////////////////////////////////////
 
 typedef std::map < std::set<int> , std::vector<cv::Point>   > edge_points_mapper;
 typedef std::map < int , std::vector<cv::Point>   > region_points_mapper;
@@ -142,7 +146,7 @@ typedef std::map < int , std::vector<cv::Point>   > region_points_mapper;
 typedef	std::unordered_map <int,Node*> NodeMapper;
 typedef	std::unordered_map <int,Edge*> EdgeMapper;
 typedef	std::unordered_map <int,Region_Node*> RegionNodeMapper;
-typedef	std::unordered_map <int,Region_Edge*> RegionEdgeMapper;
+typedef	std::map < std::set<int> ,Region_Edge*> RegionEdgeMapper;
 	
 
 //////////////////////////////////////////////////////////
@@ -157,11 +161,17 @@ class RegionGraph{
 
 	
 	protected:
+	void extract_subgraph();
+	void evaluate_list_connectivity(std::list <Node*> list_in, int name);
+	void build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image);
+	void find_edges_between_regions();
+
+
 	std::unordered_map <int,Node*> Nodes_Map;
 	std::unordered_map <int,Edge*> Edges_Map;
 	
 	std::unordered_map <int,Region_Node*> Region_Nodes_Map;
-	std::unordered_map <int,Region_Edge*> Region_Edges_Map;
+	std::map < std::set<int> ,Region_Edge*> Region_Edges_Map;
 	
 		
 };

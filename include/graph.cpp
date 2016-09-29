@@ -517,6 +517,70 @@ cv::Mat UtilityGraph::build_region_graph(cv::Mat  Tag_image, cv::Mat  original_i
 /////////////////////////////////////////////////////////////
 
 
+RegionGraph::~RegionGraph(){
+
+	for(NodeMapper::iterator it = Nodes_Map.begin(); it != Nodes_Map.end(); it++){
+		Node* ptr = (*it).second;
+	    delete  ptr;
+	}
+	Nodes_Map.clear();
+
+	for(EdgeMapper::iterator it = Edges_Map.begin(); it != Edges_Map.end(); it++){
+		Edge* ptr = (*it).second;
+	    delete  ptr;
+	}
+	Edges_Map.clear();
+
+	for(RegionNodeMapper::iterator it = Region_Nodes_Map.begin(); it != Region_Nodes_Map.end(); it++){
+		Region_Node* ptr = (*it).second;
+	    delete  ptr;
+	}
+	Region_Nodes_Map.clear();
+	
+	for(RegionEdgeMapper::iterator it = Region_Edges_Map.begin(); it != Region_Edges_Map.end(); it++){
+		Region_Edge* ptr = (*it).second;
+	    delete  ptr;
+	}
+	Region_Edges_Map.clear();
+
+
+}
+
+///////////////////
+void RegionGraph::print_Region_Atributes(){
+
+	std::cout << std::endl<< std::endl;
+	
+	std::cout << "Number of Nodes "<< Nodes_Map.size() << std::endl;
+	std::cout << "Number of Edges "<< Edges_Map.size() << std::endl;
+	std::cout << "Number of Regions "<< Region_Nodes_Map.size() << std::endl << std::endl;
+
+//	std::cout << "Number of Nodes per Region "<< std::endl;
+	for (RegionNodeMapper::iterator Region_iter = Region_Nodes_Map.begin(); Region_iter != Region_Nodes_Map.end(); Region_iter++){
+		std::cout << "   Region "<< (*Region_iter).first  <<": Number of Nodes: "<< (*Region_iter).second->nodes_inside.size() ;
+		std::cout << "        Subgraphs "<<  (*Region_iter).second->sub_graphs.size() << std::endl;
+		for( std::list < std::list <Node*> >::iterator it = (*Region_iter).second->sub_graphs.begin();it != (*Region_iter).second->sub_graphs.end(); it++ ){
+			std::cout << "        Subgraphs size "<<  (*it).size() << " nodes" <<std::endl;
+		}
+		std::cout << "   Connections "<< std::endl;
+		for(int i=0; i<  (*Region_iter).second->connected.size(); i++){
+			std::set <int> link = (*Region_iter).second->connected[i]->Nodes_ids;
+			std::cout << "     ("<< (*link.begin()) <<","<<  (*link.rbegin()) <<  ")  " ;			
+		}
+		std::cout << std::endl;			
+
+	}
+	/////////////
+	std::cout << "Region Edges "<< std::endl;
+	for (RegionEdgeMapper::iterator Region_Edge_iter = Region_Edges_Map.begin(); Region_Edge_iter != Region_Edges_Map.end(); Region_Edge_iter++){
+		std::set<int> link = (*Region_Edge_iter).second->Nodes_ids;
+		std::cout << "    Path ("<< (*link.begin()) <<","<<  (*link.rbegin()) <<  ")  has " << (*Region_Edge_iter).second->Edges_in_border.size()  << " connections" << std::endl;	
+	}
+
+
+
+}
+///////////////////////
 
 
 int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_markers, nav_msgs::MapMetaData info, cv::Mat  Tag_image, cv::Mat  original_image){
@@ -527,6 +591,11 @@ int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_marke
 	Node* TO_Node_ptr;   
 		
 	std::complex<double> origin(info.origin.position.x, info.origin.position.y);	
+	
+	
+	Region_Node* Unexplored_region = new Region_Node;
+	Unexplored_region->id=-1;
+	Region_Nodes_Map[-1] = Unexplored_region;	
 	
 	
 	for (int i=0; i < number_of_edges;i++){
@@ -563,6 +632,7 @@ int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_marke
 				if(Region_iter == Region_Nodes_Map.end() ){// not found
 					Region_Node* current_region = new Region_Node;
 					current_region->nodes_inside.push_back(from_Node_ptr);
+					current_region->id = region_tag;
 					Region_Nodes_Map[region_tag] = current_region;				
 				}
 				else{
@@ -600,6 +670,7 @@ int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_marke
 				if(Region_iter == Region_Nodes_Map.end() ){// not found
 					Region_Node* current_region = new Region_Node;
 					current_region->nodes_inside.push_back(TO_Node_ptr);
+					current_region->id = region_tag;
 					Region_Nodes_Map[region_tag] = current_region;				
 				}
 				else{
@@ -640,71 +711,190 @@ int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_marke
 		current_edge->to = TO_Node_ptr;
 	}
 
-	std::cout << "Everything inserted "<< std::endl;
+//	std::cout << "Everything inserted "<< std::endl;
 
-
-	
-	
+	extract_subgraph();
+//	std::cout << "Subgraph extracted "<< std::endl;
+	build_region_graph(Tag_image, original_image);
+	find_edges_between_regions();
 	///////
 	return 1;
 }
 
+/////////////////
 
-RegionGraph::~RegionGraph(){
+
+void RegionGraph::extract_subgraph(){
 	
-
-	
-	for(NodeMapper::iterator it = Nodes_Map.begin(); it != Nodes_Map.end(); it++){
-		Node* ptr = (*it).second;
-	    delete  ptr;
-	}
-	Nodes_Map.clear();
-
-	for(EdgeMapper::iterator it = Edges_Map.begin(); it != Edges_Map.end(); it++){
-		Edge* ptr = (*it).second;
-	    delete  ptr;
-	}
-	Edges_Map.clear();
-
-	for(RegionNodeMapper::iterator it = Region_Nodes_Map.begin(); it != Region_Nodes_Map.end(); it++){
-		Region_Node* ptr = (*it).second;
-	    delete  ptr;
-	}
-	Region_Nodes_Map.clear();
-	
-	for(RegionEdgeMapper::iterator it = Region_Edges_Map.begin(); it != Region_Edges_Map.end(); it++){
-		Region_Edge* ptr = (*it).second;
-	    delete  ptr;
-	}
-	Region_Edges_Map.clear();
-
-
-}
-
-
-
-
-
-
-
-
-
-
-void RegionGraph::print_Region_Atributes(){
-
-
-	std::cout << "Number of Nodes "<< Nodes_Map.size() << std::endl;
-	std::cout << "Number of Edges "<< Edges_Map.size() << std::endl;
-	std::cout << "Number of Regions "<< Region_Nodes_Map.size() << std::endl << std::endl;
-
-	std::cout << "Number of Nodes per Region "<< std::endl;
 	for (RegionNodeMapper::iterator Region_iter = Region_Nodes_Map.begin(); Region_iter != Region_Nodes_Map.end(); Region_iter++){
-		std::cout << "   Region "<< (*Region_iter).first  <<": Number of Nodes: "<< (*Region_iter).second->nodes_inside.size() << std::endl;
+		std::list <Node*> Remaining_Nodes = (*Region_iter).second->nodes_inside, Nodes_in_sub_Region;
+		int sub_region=0;
+
+		while( Remaining_Nodes.size() > 0){// Breadth first
+			evaluate_list_connectivity(Remaining_Nodes, sub_region);
+			Remaining_Nodes.clear();
+			Nodes_in_sub_Region.clear();
+
+			for(Node_iter it = (*Region_iter).second->nodes_inside.begin(); it != (*Region_iter).second->nodes_inside.end(); it++){		
+				if( (*it)->info.sub_region == -1 ){
+					Remaining_Nodes.push_back(*it);
+				}
+				else if( (*it)->info.sub_region == sub_region ){
+					Nodes_in_sub_Region.push_back(*it);
+				}
+			}
+			sub_region++;
+			(*Region_iter).second->sub_graphs.push_back(Nodes_in_sub_Region);
+		}
+		////		
+	}
+}
+//////////
+void RegionGraph::evaluate_list_connectivity(std::list <Node*> list_in, int name){
+
+	list_in.front()->info.sub_region = name;
+	
+	int current_region_label = list_in.front()->info.region_label;
+
+	std::queue<Node*> Q;
+	Q.push( list_in.front() );
+
+	
+	while (!Q.empty()){
+		Node* current = Q.front();		Q.pop();
+
+		for (int i=0;i< current->connected.size();i++ ){
+			Node* destiny =current->connected[i].to;
+
+			if(destiny->info.region_label == current_region_label){
+				if(destiny->info.sub_region != name ){	
+					destiny->info.sub_region = name;
+					Q.push(destiny);
+				}
+			}
+		}
+	} 
+}
+
+
+
+
+void RegionGraph::build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image){
+	
+	int window_size=1;
+	
+	
+	edge_points_mapper mapping_set_to_point_array, mapping_frontier_to_point_array;
+	region_points_mapper mapping_region_to_point_array;
+	
+	for (int i=window_size;i < Tag_image.size().width- window_size ;i++){
+		for (int j=window_size;j < Tag_image.size().height - window_size ;j++){
+		
+			/////////////////////
+			cv::Point window_center(i,j);
+			int center_tag = Tag_image.at<uchar>(window_center);
+			
+			std::set<int>  connections_in_region, frontier_connections;
+			//check neigbourhood for frontiers and connection
+			for(int x=-window_size; x <= window_size; x++){
+				for(int y=-window_size; y <= window_size; y++){
+					cv::Point delta(x,y); 							
+					cv::Point current_point = window_center + delta;
+					int tag = Tag_image.at<uchar>(current_point);
+					int frontier = original_image.at<uchar>(current_point);
+					
+					if (tag>0){
+						connections_in_region.insert( tag -1 );
+						frontier_connections.insert( tag -1 );
+					}
+					if ( frontier==255 &&  tag==0) frontier_connections.insert( -1 );
+
+				}
+			}
+			//////////////////////////////
+//*
+			if (connections_in_region.size()==2 || (frontier_connections.size()==2 &&  ( (*frontier_connections.begin())==-1) ) ){
+				mapping_region_to_point_array[center_tag-1].push_back(window_center);
+			}
+//*/			
+			//////////////////
+			if(connections_in_region.size()==2){					
+				mapping_set_to_point_array[connections_in_region].push_back(window_center);
+				
+			}
+			if(frontier_connections.size()==2 &&  ( (*frontier_connections.begin())==-1) ){					
+				mapping_frontier_to_point_array[frontier_connections].push_back(window_center);
+	//					Frontier_image.at<uchar>( window_center ) = 255;
+			}
+		}
+	}
+	//////////////	
+	
+	
+	
+	for (region_points_mapper::iterator it2 = mapping_region_to_point_array.begin(); it2 != mapping_region_to_point_array.end(); it2 ++){
+		Region_Nodes_Map[it2->first]->contour = (*it2).second;		
+	}
+
+	for (edge_points_mapper::iterator it2 = mapping_set_to_point_array.begin(); it2 != mapping_set_to_point_array.end(); it2 ++){
+		Region_Edge *InsideEdge;
+		InsideEdge = new Region_Edge;
+		
+		InsideEdge->frontier = it2->second;
+		std::set<int> conection =it2->first;
+		InsideEdge->First_Region  = Region_Nodes_Map[ (*conection.begin()) ];
+		InsideEdge->Second_Region = Region_Nodes_Map[ (*conection.rbegin()) ];
+		InsideEdge->Nodes_ids = conection;
+		
+		Region_Nodes_Map[ (*conection.begin()) ]->connected.push_back(InsideEdge);
+		Region_Nodes_Map[ (*conection.rbegin()) ]->connected.push_back(InsideEdge);
+		
+		Region_Edges_Map[conection] =InsideEdge;	
+	}
+
+	for (edge_points_mapper::iterator it2 = mapping_frontier_to_point_array.begin(); it2 != mapping_frontier_to_point_array.end(); it2 ++){
+		Region_Edge *InsideEdge;
+		InsideEdge = new Region_Edge;
+		
+		InsideEdge->frontier = it2->second;
+		std::set<int> conection =it2->first;
+		InsideEdge->First_Region  = Region_Nodes_Map[ (*conection.begin()) ];
+		InsideEdge->Second_Region = Region_Nodes_Map[ (*conection.rbegin()) ];
+		InsideEdge->Nodes_ids = conection;
+		
+		Region_Nodes_Map[ (*conection.begin()) ]->connected.push_back(InsideEdge);
+		Region_Nodes_Map[ (*conection.rbegin()) ]->connected.push_back(InsideEdge);
+		
+		Region_Edges_Map[conection] =InsideEdge;	
 	}
 
 
 
 }
+
+
+
+void RegionGraph::find_edges_between_regions(){
+	std::list <Edge*> connecting_edges;
+		
+	for(EdgeMapper::iterator it = Edges_Map.begin(); it != Edges_Map.end(); it++){
+
+		int region_from = (*it).second->from->info.region_label;
+		int region_to   = (*it).second->to->info.region_label;
+		
+		std::set<int> connection;
+		connection.insert(region_from);
+		connection.insert(region_to);
+
+			
+		if( region_from != region_to ){
+			Region_Edges_Map[connection]->Edges_in_border.push_back( (*it).second );
+		}
+		
+	}
+
+}
+
 
 
 
