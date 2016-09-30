@@ -123,8 +123,7 @@ class RegionGraph{
 	
 	~RegionGraph();
 	int build_Region_Graph(std::vector<geometry_msgs::Point> edge_markers, nav_msgs::MapMetaData info, cv::Mat  Tag_image, cv::Mat  original_image);
-	void print_Region_Atributes();
-
+	friend std::ostream& operator<<(std::ostream& os, RegionGraph& Graph);
 	
 	protected:
 	void extract_subgraph();

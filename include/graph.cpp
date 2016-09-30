@@ -37,11 +37,6 @@ void Node::print_node_label_and_pos(){
 
 
 
-
-
-
-
-
 ///////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////
 
@@ -75,41 +70,41 @@ RegionGraph::~RegionGraph(){
 
 }
 
-///////////////////
-void RegionGraph::print_Region_Atributes(){
-
-	std::cout << std::endl<< std::endl;
+///////////////////////
+std::ostream& operator<<(std::ostream& os, RegionGraph& Graph){
+	os << "\n"<< "\n";
 	
-	std::cout << "Number of Nodes "<< Nodes_Map.size() << std::endl;
-	std::cout << "Number of Edges "<< Edges_Map.size() << std::endl;
-	std::cout << "Number of Regions "<< Region_Nodes_Map.size() << std::endl << std::endl;
+	os << "Number of Nodes "<< Graph.Nodes_Map.size() << "\n";
+	os << "Number of Edges "<< Graph.Edges_Map.size() << "\n";
+	os << "Number of Regions "<< Graph.Region_Nodes_Map.size() << "\n" << "\n";
 
-//	std::cout << "Number of Nodes per Region "<< std::endl;
-	for (RegionNodeMapper::iterator Region_iter = Region_Nodes_Map.begin(); Region_iter != Region_Nodes_Map.end(); Region_iter++){
-		std::cout << "   Region "<< (*Region_iter).first  <<": Number of Nodes: "<< (*Region_iter).second->nodes_inside.size() ;
-		std::cout << "        Subgraphs "<<  (*Region_iter).second->sub_graphs.size() << std::endl;
+//	os << "Number of Nodes per Region "<< "\n";
+	for (RegionNodeMapper::iterator Region_iter = Graph.Region_Nodes_Map.begin(); Region_iter != Graph.Region_Nodes_Map.end(); Region_iter++){
+		os << "   Region "<< (*Region_iter).first  <<": Number of Nodes: "<< (*Region_iter).second->nodes_inside.size() ;
+		os << "        Subgraphs "<<  (*Region_iter).second->sub_graphs.size() << "\n";
 		for( std::list < std::list <Node*> >::iterator it = (*Region_iter).second->sub_graphs.begin();it != (*Region_iter).second->sub_graphs.end(); it++ ){
-			std::cout << "        Subgraphs size "<<  (*it).size() << " nodes" <<std::endl;
+			os << "        Subgraphs size "<<  (*it).size() << " nodes" <<"\n";
 		}
-		std::cout << "   Connections "<< std::endl;
+		os << "   Connections "<< "\n";
 		for(int i=0; i<  (*Region_iter).second->connected.size(); i++){
 			std::set <int> link = (*Region_iter).second->connected[i]->Nodes_ids;
-			std::cout << "     ("<< (*link.begin()) <<","<<  (*link.rbegin()) <<  ")  " ;			
+			os << "     ("<< (*link.begin()) <<","<<  (*link.rbegin()) <<  ")  " ;			
 		}
-		std::cout << std::endl;			
+		os << "\n";			
 
 	}
 	/////////////
-	std::cout << "Region Edges "<< std::endl;
-	for (RegionEdgeMapper::iterator Region_Edge_iter = Region_Edges_Map.begin(); Region_Edge_iter != Region_Edges_Map.end(); Region_Edge_iter++){
+	os << "Region Edges "<< "\n";
+	for (RegionEdgeMapper::iterator Region_Edge_iter = Graph.Region_Edges_Map.begin(); Region_Edge_iter != Graph.Region_Edges_Map.end(); Region_Edge_iter++){
 		std::set<int> link = (*Region_Edge_iter).second->Nodes_ids;
-		std::cout << "    Path ("<< (*link.begin()) <<","<<  (*link.rbegin()) <<  ")  has " << (*Region_Edge_iter).second->Edges_in_border.size()  << " connections" << std::endl;	
+		os << "    Path ("<< (*link.begin()) <<","<<  (*link.rbegin()) <<  ")  has " << (*Region_Edge_iter).second->Edges_in_border.size()  << " connections" << "\n";	
 	}
-
-
-
+    return os;
 }
-///////////////////////
+
+
+//////////////////////////////
+
 
 
 int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_markers, nav_msgs::MapMetaData info, cv::Mat  Tag_image, cv::Mat  original_image){
@@ -430,6 +425,21 @@ void RegionGraph::find_edges_between_regions(){
 
 
 
+
+/*
+Tremaux
+
+*path is unvisited, marked once or twice
+
+1. Remember direction taken
+
+2. Is noded marked (has been visited)?
+  2.1 Not marked -> choose a random direction and mark
+  2.2 Is marked,
+     2.2.1  if direction is marked once return the same direction
+     2.2.2  else, pick direction with fewest marks (random if more than once)
+
+*/
 
 
 
