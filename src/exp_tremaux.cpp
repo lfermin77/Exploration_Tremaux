@@ -143,33 +143,11 @@ class ROS_handler
 			cv::Mat grad;
 			
 			
-			UtilityGraph GraphSLAM;
-//			build_graph_from_edges(edges, GraphSLAM);
-			GraphSLAM.build_graph_from_edges(edges);
+
 
 			if(data_ready){
 				cv::Mat occupancy_image = image_map.clone();
 
-				grad =GraphSLAM.graph2image(map_info, image_tagged);				
-				find_contour_connectivity_and_frontier(image_tagged, occupancy_image);
-//				GraphSLAM.build_region_graph(image_tagged, occupancy_image);
-//				GraphSLAM.print_nodes();
-				GraphSLAM.find_edges_between_regions();
-
-				std::complex<double> complex_last_node(Last_node.x, Last_node.y);				
-				GraphSLAM.update_distances(	complex_last_node );
-				
-				GraphSLAM.evaluate_regions_connectivity();
-
-				double min, max;
-				cv::minMaxLoc(image_tagged, &min, &max);
-				
-				std::list <Node*> node_pairs;
-				for(int i=0;i < max; i++){
-					std::cout << "Region "<< i << " analysis " << std::endl;
-					GraphSLAM.Closest_subregions(node_pairs,i);
-				}
-				
 				RegionGraph Tremaux_Graph;
 				Tremaux_Graph.build_Region_Graph(edges, map_info, image_tagged, occupancy_image);
 				Tremaux_Graph.print_Region_Atributes();
@@ -202,106 +180,6 @@ class ROS_handler
 
 
 		typedef std::map < std::set<int> , std::vector<cv::Point>   > edge_points_mapper;
-		
-		cv::Mat find_contour_connectivity_and_frontier(cv::Mat  Tag_image, cv::Mat  original_image){
-			
-			UtilityGraph Region_Graph;
-			int window_size=1;
-			
-			cv::Mat  Frontier_image  = cv::Mat::zeros(original_image.size(), CV_8UC1);
-			
-			edge_points_mapper mapping_set_to_point_array, mapping_frontier_to_point_array;
-			for (int i=window_size;i < Tag_image.size().width- window_size ;i++){
-				for (int j=window_size;j < Tag_image.size().height - window_size ;j++){
-				
-					/////////////////////
-					cv::Point window_center(i,j);
-					
-					std::set<int>  connections_in_region, frontier_connections;
-					for(int x=-window_size; x <= window_size; x++){
-						for(int y=-window_size; y <= window_size; y++){
-							cv::Point delta(x,y); 							
-							cv::Point current_point = window_center + delta;
-							int tag = Tag_image.at<uchar>(current_point);
-							int frontier = original_image.at<uchar>(current_point);
-							
-							if (tag>0){
-								connections_in_region.insert( tag -1 );
-								frontier_connections.insert( tag -1 );
-							}
-							if ( frontier==255 &&  tag==0) frontier_connections.insert( -1 );
-
-						}
-					}
-					//////////////////
-				if(connections_in_region.size()==2){					
-					mapping_set_to_point_array[connections_in_region].push_back(window_center);
-				}
-				if(frontier_connections.size()==2 &&  ( (*frontier_connections.begin())==-1) ){					
-					mapping_frontier_to_point_array[frontier_connections].push_back(window_center);
-//					Frontier_image.at<uchar>( window_center ) = 255;
-				}
-				}
-			}
-			//////////////	
-			
-			
-//*
-			for (edge_points_mapper::iterator it2 = mapping_set_to_point_array.begin(); it2 != mapping_set_to_point_array.end(); it2 ++){
-
-				std::cout << "Connections  are: ";
-				std::set<int> current_connections_set = it2->first ;
-				for (std::set<int>::iterator it = current_connections_set.begin(); it != current_connections_set.end(); it ++){
-					std::cout <<" " << *it;
-				}
-				
-				std::vector<cv::Point> current_points = it2->second;
-				cv::Point average_point(0,0);
-
-				for (std::vector<cv::Point>::iterator it = current_points.begin(); it != current_points.end(); it ++){
-					average_point += *it;
-				}		
-				std::cout <<" at position (" << average_point.x/current_points.size() << " , " << average_point.y/current_points.size() << ")";
-				
-				std::cout << std::endl;
-			}
-			//*/
-			
-//*
-			std::cout << "Frontiers size is: "<<  mapping_frontier_to_point_array.size() << std::endl;
-			for (edge_points_mapper::iterator it2 = mapping_frontier_to_point_array.begin(); it2 != mapping_frontier_to_point_array.end(); it2 ++){
-				
-				if(it2->first.size() <3){
-					std::cout << "Frontiers  are: ";
-					std::set<int> current_connections_set = it2->first ;
-					for (std::set<int>::iterator it = current_connections_set.begin(); it != current_connections_set.end(); it ++){
-						std::cout <<" " << *it;
-					}
-					
-					std::vector<cv::Point> current_points = it2->second;
-					cv::Point average_point(0,0);	
-					for (std::vector<cv::Point>::iterator it = current_points.begin(); it != current_points.end(); it ++){
-						average_point += *it;
-						Frontier_image.at<uchar>( *it ) = 255;
-					}		
-					std::cout <<" at position (" << average_point.x/current_points.size() << " , " << average_point.y/current_points.size() << ") size: "<< current_points.size();
-					
-					std::cout << std::endl;
-
-				}
-
-			}
-			return Frontier_image;
-//			return original_image;
-			//*/
-
-
-
-				
-
-		}
-
-
 
 
 

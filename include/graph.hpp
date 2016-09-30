@@ -103,40 +103,6 @@ class Region_Node{
 typedef std::list<Node*>::iterator Node_iter;
 typedef std::list<Edge*>::iterator Edge_iter;
 
-class UtilityGraph{
-	public:
-	
-	
-
-	~UtilityGraph();
-		
-	void print_nodes();
-	Node_iter find_point_in_node(std::complex<double> query_position);
-	int update_distances(std::complex<double> current_position);
-
-	std::list <Edge*> find_edges_between_regions();	
-	void evaluate_regions_connectivity();
-	void evaluate_list_connectivity(std::list <Node*> list_in, int name);
-	void Closest_subregions(std::list <Node*> node_pair, int region);
-	std::pair <Node*,Node*> closest_node_subregions(std::vector<Node*> path_1, std::vector<Node*> path_2);
-	
-	int build_graph_from_edges(std::vector<geometry_msgs::Point> edge_markers);
-	cv::Mat graph2image(nav_msgs::MapMetaData info, cv::Mat  Tag_image );
-	cv::Mat build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image);
-
-	int build_SLAM_graph_from_edges(std::vector<geometry_msgs::Point> edge_markers);
-
-
-	
-	protected:
-	std::list <Node*> Nodes;
-	std::list <Edge*> Edges;
-	
-	std::list <Region_Node*> Region_Nodes;
-	std::list <Region_Edge*> Region_Edges;
-	
-		
-};
 ///////////////////////////////////////
 ///////////////////////////////////////
 
