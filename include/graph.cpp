@@ -235,12 +235,16 @@ int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_marke
 		current_edge->to = TO_Node_ptr;
 	}
 
-//	std::cout << "Everything inserted "<< std::endl;
+	std::cout << "   Everything inserted "<< std::endl;
 
 	extract_subgraph();
-//	std::cout << "Subgraph extracted "<< std::endl;
+	std::cout << "   Subgraph extracted "<< std::endl;
+
 	build_region_graph(Tag_image, original_image);
+	std::cout << "   Region Graph Built "<< std::endl;
+	
 	find_edges_between_regions();
+	std::cout << "   Edges Between Regions Added "<< std::endl;
 	///////
 	return 1;
 }
@@ -354,11 +358,20 @@ void RegionGraph::build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image
 	}
 	//////////////	
 	
-	
-	
+	std::cout << "      Image processed "<< std::endl;
+	std::cout << "      Mapping size "<< mapping_region_to_point_array.size() << std::endl;
+	std::cout << "      Region size "<< Region_Nodes_Map.size() << std::endl;
+	for (region_points_mapper::iterator it2 = mapping_region_to_point_array.begin(); it2 != mapping_region_to_point_array.end(); it2 ++){
+		std::cout << "         Region size "<< (*it2).first << " with " << (*it2).second.size() << " points"  << std::endl;
+		Region_Nodes_Map[it2->first]->contour = (*it2).second;		
+	}
+		std::cout << "      Semi Contour Extracted "<< std::endl;
+		
 	for (region_points_mapper::iterator it2 = mapping_region_to_point_array.begin(); it2 != mapping_region_to_point_array.end(); it2 ++){
 		Region_Nodes_Map[it2->first]->contour = (*it2).second;		
 	}
+
+	std::cout << "      Contour Extracted "<< std::endl;
 
 	for (edge_points_mapper::iterator it2 = mapping_set_to_point_array.begin(); it2 != mapping_set_to_point_array.end(); it2 ++){
 		Region_Edge *InsideEdge;
@@ -375,6 +388,7 @@ void RegionGraph::build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image
 		
 		Region_Edges_Map[conection] =InsideEdge;	
 	}
+	std::cout << "      Edge Extracted "<< std::endl;
 
 	for (edge_points_mapper::iterator it2 = mapping_frontier_to_point_array.begin(); it2 != mapping_frontier_to_point_array.end(); it2 ++){
 		Region_Edge *InsideEdge;
@@ -391,7 +405,7 @@ void RegionGraph::build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image
 		
 		Region_Edges_Map[conection] =InsideEdge;	
 	}
-
+	std::cout << "      Frontier Extracted "<< std::endl;
 
 
 }

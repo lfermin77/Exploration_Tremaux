@@ -150,7 +150,7 @@ class ROS_handler
 
 				RegionGraph Tremaux_Graph;
 				Tremaux_Graph.build_Region_Graph(edges, map_info, image_tagged, occupancy_image);
-				std::cout << Tremaux_Graph;
+//				std::cout << Tremaux_Graph;
 				
 				data_ready = map_received = path_received = graph_received = tagged_image_received = false;
 				
