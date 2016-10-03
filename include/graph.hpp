@@ -124,6 +124,7 @@ class RegionGraph{
 	~RegionGraph();
 	int build_Region_Graph(std::vector<geometry_msgs::Point> edge_markers, nav_msgs::MapMetaData info, cv::Mat  Tag_image, cv::Mat  original_image);
 	friend std::ostream& operator<<(std::ostream& os, RegionGraph& Graph);
+	void Tremaux_data();
 	
 	protected:
 	void extract_subgraph();
@@ -131,7 +132,8 @@ class RegionGraph{
 	void build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image);
 	void find_edges_between_regions();
 
-
+	int current_node_id;
+	
 	std::unordered_map <int,Node*> Nodes_Map;
 	std::unordered_map <int,Edge*> Edges_Map;
 	

@@ -121,6 +121,7 @@ int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_marke
 	Unexplored_region->id=-1;
 	Region_Nodes_Map[-1] = Unexplored_region;	
 	
+	current_node_id = 0;
 	
 	for (int i=0; i < number_of_edges;i++){
 		std::complex<double> FROM_position( edge_markers[2*i].x , edge_markers[2*i].y  );
@@ -129,6 +130,8 @@ int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_marke
 		int FROM_label = edge_markers[2*i].z*100;
 		int TO_label   = edge_markers[2*i+1].z*100;
 
+		current_node_id = std::max(current_node_id , FROM_label);
+		current_node_id = std::max(current_node_id , TO_label);
 
 		NodeMapper::iterator FROM_iter = Nodes_Map.find (FROM_label);
 		NodeMapper::iterator TO_iter = Nodes_Map.find (TO_label);
@@ -235,16 +238,16 @@ int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_marke
 		current_edge->to = TO_Node_ptr;
 	}
 
-	std::cout << "   Everything inserted "<< std::endl;
+//	std::cout << "   Everything inserted "<< std::endl;
 
 	extract_subgraph();
-	std::cout << "   Subgraph extracted "<< std::endl;
+//	std::cout << "   Subgraph extracted "<< std::endl;
 
 	build_region_graph(Tag_image, original_image);
-	std::cout << "   Region Graph Built "<< std::endl;
+//	std::cout << "   Region Graph Built "<< std::endl;
 	
 	find_edges_between_regions();
-	std::cout << "   Edges Between Regions Added "<< std::endl;
+//	std::cout << "   Edges Between Regions Added "<< std::endl;
 	///////
 	return 1;
 }
@@ -340,11 +343,10 @@ void RegionGraph::build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image
 				}
 			}
 			//////////////////////////////
-//*
 			if (connections_in_region.size()==2 || (frontier_connections.size()==2 &&  ( (*frontier_connections.begin())==-1) ) ){
 				mapping_region_to_point_array[center_tag-1].push_back(window_center);
 			}
-//*/			
+
 			//////////////////
 			if(connections_in_region.size()==2){					
 				mapping_set_to_point_array[connections_in_region].push_back(window_center);
@@ -358,20 +360,21 @@ void RegionGraph::build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image
 	}
 	//////////////	
 	
-	std::cout << "      Image processed "<< std::endl;
-	std::cout << "      Mapping size "<< mapping_region_to_point_array.size() << std::endl;
-	std::cout << "      Region size "<< Region_Nodes_Map.size() << std::endl;
+	// std::cout << "      Image processed "<< std::endl;
+	
 	for (region_points_mapper::iterator it2 = mapping_region_to_point_array.begin(); it2 != mapping_region_to_point_array.end(); it2 ++){
-		std::cout << "         Region size "<< (*it2).first << " with " << (*it2).second.size() << " points"  << std::endl;
-		Region_Nodes_Map[it2->first]->contour = (*it2).second;		
+		int region_tag = (*it2).first;		
+		RegionNodeMapper::iterator Region_iter = Region_Nodes_Map.find(region_tag);			
+		if(Region_iter == Region_Nodes_Map.end() ){// not found
+			Region_Node* current_region = new Region_Node;
+			current_region->id = region_tag;
+			Region_Nodes_Map[region_tag] = current_region;				
+		}				
+		Region_Nodes_Map[region_tag]->contour = (*it2).second;		
 	}
-		std::cout << "      Semi Contour Extracted "<< std::endl;
+	//	std::cout << "      Contour Extracted "<< std::endl;
 		
-	for (region_points_mapper::iterator it2 = mapping_region_to_point_array.begin(); it2 != mapping_region_to_point_array.end(); it2 ++){
-		Region_Nodes_Map[it2->first]->contour = (*it2).second;		
-	}
 
-	std::cout << "      Contour Extracted "<< std::endl;
 
 	for (edge_points_mapper::iterator it2 = mapping_set_to_point_array.begin(); it2 != mapping_set_to_point_array.end(); it2 ++){
 		Region_Edge *InsideEdge;
@@ -388,7 +391,7 @@ void RegionGraph::build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image
 		
 		Region_Edges_Map[conection] =InsideEdge;	
 	}
-	std::cout << "      Edge Extracted "<< std::endl;
+	// std::cout << "      Edge Extracted "<< std::endl;
 
 	for (edge_points_mapper::iterator it2 = mapping_frontier_to_point_array.begin(); it2 != mapping_frontier_to_point_array.end(); it2 ++){
 		Region_Edge *InsideEdge;
@@ -405,7 +408,7 @@ void RegionGraph::build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image
 		
 		Region_Edges_Map[conection] =InsideEdge;	
 	}
-	std::cout << "      Frontier Extracted "<< std::endl;
+	// std::cout << "      Frontier Extracted "<< std::endl;
 
 
 }
@@ -434,7 +437,23 @@ void RegionGraph::find_edges_between_regions(){
 }
 
 
+void RegionGraph::Tremaux_data(){	
+	std::cout << "Current Node id is  "<< current_node_id << std::endl;
+	Region_Node* current_Region = Region_Nodes_Map[ Nodes_Map[current_node_id]->info.region_label ];
 
+	std::cout << "Current Region is  "<< current_Region->id << std::endl;
+
+	std::cout << "Paths  " << std::endl;
+	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
+		std::set<int> connections =  (*region_edge_iter)->Nodes_ids;
+		std::cout << "  ( " << *(connections.begin() )<< " , "<< *(connections.rbegin() )  << " )"<< std::endl;
+	}
+	
+
+
+
+	int a=1;
+}
 
 
 
