@@ -442,17 +442,63 @@ void RegionGraph::Tremaux_data(){
 	Region_Node* current_Region = Region_Nodes_Map[ Nodes_Map[current_node_id]->info.region_label ];
 
 	std::cout << "Current Region is  "<< current_Region->id << std::endl;
+	
+	std::set <int> regions_to_visit;
+	// Is it fully connected?
+	if (current_Region->sub_graphs.size() >= 2 ){
+		std::cout << "   Number of subgraphs  "<< current_Region->sub_graphs.size() << ", Should connect region graph  " << std::endl;
+		regions_to_visit.insert(current_Region->id);
+	}
+	
+
 
 	std::cout << "Paths  " << std::endl;
 	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
 		std::set<int> connections =  (*region_edge_iter)->Nodes_ids;
-		std::cout << "  ( " << *(connections.begin() )<< " , "<< *(connections.rbegin() )  << " )"<< std::endl;
+		if (*(connections.begin() ) == current_Region->id){
+			std::cout << "  ( " << *(connections.begin() )<< " , "<< *(connections.rbegin() )  << " )"<< std::endl;
+		}
+		else{
+			std::cout << "  ( " << *(connections.rbegin() )<< " , "<< *(connections.begin() )  << " )"<< std::endl;
+		} 	
+		
+		if( (*region_edge_iter)->Edges_in_border.size() == 0 ){
+			std::cout << "     no link "<< std::endl;
+		}
+		bool link_in  = false;
+		bool link_out = false;
+		for(std::vector <Edge*>::iterator edge_iter =  (*region_edge_iter)->Edges_in_border.begin(); edge_iter !=  (*region_edge_iter)->Edges_in_border.end(); edge_iter++  ){
+			Edge *current_edge = *edge_iter;
+			int region_from = current_edge->from->info.region_label;
+			int region_to   = current_edge->to->info.region_label;
+			std::cout << "     from " <<  region_from  << " to "<< region_to;
+			
+			if( region_from == current_Region->id){
+				std::cout << ", link out " <<  std::endl;
+				link_out = true;
+			}
+			else{
+				std::cout << ", link in " <<  std::endl;
+				link_in = true;
+			}
+			
+		}
+		if( link_out == false ){
+			if (*(connections.begin() ) == current_Region->id){
+				regions_to_visit.insert(*(connections.rbegin() ));
+			}
+			else{
+				regions_to_visit.insert(*(connections.begin() ));
+			} 
+
+		}		
+				
 	}
 	
 
 
 
-	int a=1;
+
 }
 
 
