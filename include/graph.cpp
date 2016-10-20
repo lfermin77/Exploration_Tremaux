@@ -127,8 +127,8 @@ int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_marke
 		std::complex<double> FROM_position( edge_markers[2*i].x , edge_markers[2*i].y  );
 		std::complex<double> TO_position  (edge_markers[2*i+1].x, edge_markers[2*i+1].y);
 
-		int FROM_label = edge_markers[2*i].z*100;
-		int TO_label   = edge_markers[2*i+1].z*100;
+		int FROM_label = edge_markers[2*i].z*1000;
+		int TO_label   = edge_markers[2*i+1].z*1000;
 
 		current_node_id = std::max(current_node_id , FROM_label);
 		current_node_id = std::max(current_node_id , TO_label);
@@ -426,8 +426,6 @@ void RegionGraph::find_edges_between_regions(){
 		std::set<int> connection;
 		connection.insert(region_from);
 		connection.insert(region_to);
-
-
 			
 		
 		if( region_from != region_to ){
@@ -483,24 +481,26 @@ void RegionGraph::Tremaux_data(){
 			markers_in[connected_region] = empty_set;
 		}
 
+//		std::cout << "  connected_region " <<  connected_region << std::endl;
+
+		std::set< Edge*> empty_set;
+		markers_out[connected_region] = empty_set;
+		markers_in[connected_region]  = empty_set;
 
 		for(std::vector <Edge*>::iterator edge_iter =  (*region_edge_iter)->Edges_in_border.begin(); edge_iter !=  (*region_edge_iter)->Edges_in_border.end(); edge_iter++  ){
 			Edge *current_edge = *edge_iter;
-			std::set< Edge*> empty_set;
-			markers_out[connected_region] = empty_set;
-			markers_in[connected_region]  = empty_set;
-			
+
 			int region_from = current_edge->from->info.region_label;
 			int region_to   = current_edge->to->info.region_label;
-//			std::cout << "     from " <<  region_from  << " to "<< region_to;
+		//	std::cout << "     from " <<  region_from  << " to "<< region_to;
 			
 			if( region_from == current_Region->id){
-//				std::cout << ", link out " <<  std::endl;
+		//		std::cout << ", link out " <<  std::endl;
 				markers_out[connected_region].insert(*edge_iter);
 
 			}
 			else{
-//				std::cout << ", link in " <<  std::endl;
+		//		std::cout << ", link in " <<  std::endl;
 				markers_in[connected_region].insert(*edge_iter);
 			}
 			
@@ -513,22 +513,22 @@ void RegionGraph::Tremaux_data(){
 
 
 	///////////////////////////	
-	std::cout << "  Nodes to visit "<< std::endl;
+	std::cout << "  Regions with path "<< std::endl;
 	std::map<int, std::vector<int> > regions_per_marks;
 	
 	
 	for( std::map<int, std::set< Edge*> >::iterator  marker_iter = markers_in.begin(); marker_iter != markers_in.end(); marker_iter ++){
 		int number_of_marks = 0;
 		int current_region = (*marker_iter).first;
-		std::cout << "     Region "<< (*marker_iter).first << ":";			
+		std::cout << "     Region "<< current_region << ":";			
 		
-		if(markers_in [current_region].size() > 0){
-			std::cout << "  marked in ";	
+		if(markers_in[current_region].size() > 0){
+			std::cout << "  marked in";	
 			number_of_marks++;		
 		}
 		if( markers_out[current_region].size() > 0){
+			std::cout << "  marked out";			
 			number_of_marks++;
-			std::cout << "  marked out ";			
 		}
 		std::cout<< ", Total Marks: "<< number_of_marks << std::endl;
 		regions_per_marks[number_of_marks].push_back(current_region);
@@ -536,14 +536,14 @@ void RegionGraph::Tremaux_data(){
 	}
 	
 	if( regions_per_marks[0].size() > 0){
-		std::cout<< "Nodes to explore: ";
+		std::cout<< "Nodes to explore with no mark: ";
 		for(std::vector<int>::iterator int_iter = regions_per_marks[0].begin(); int_iter != regions_per_marks[0].end(); int_iter ++ ){
 			std::cout<< *int_iter<<"    ";
 		}
 		std::cout << std::endl;
 	}
 	else if(regions_per_marks[1].size() > 0){
-		std::cout<< "Nodes to explore: ";
+		std::cout<< "Nodes to explore with no mark out: ";
 		for(std::vector<int>::iterator int_iter = regions_per_marks[1].begin(); int_iter != regions_per_marks[1].end(); int_iter ++ ){
 			if( markers_out[*int_iter].size() == 0){
 				std::cout<< *int_iter<<"    ";
@@ -552,7 +552,7 @@ void RegionGraph::Tremaux_data(){
 		std::cout << std::endl;
 	}
 	else{
-		std::cout<< "Map Ready or has errors: "<< std::endl;
+		std::cout<< "Map Ready "<< std::endl;
 	}
 	
 	
