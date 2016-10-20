@@ -427,14 +427,24 @@ void RegionGraph::find_edges_between_regions(){
 		connection.insert(region_from);
 		connection.insert(region_to);
 
+
 			
+		
 		if( region_from != region_to ){
-			Region_Edges_Map[connection]->Edges_in_border.push_back( (*it).second );
+			RegionEdgeMapper::iterator REM_iter;
+			REM_iter = Region_Edges_Map.find(connection);
+			if (REM_iter != Region_Edges_Map.end()){
+				(*REM_iter).second->Edges_in_border.push_back( (*it).second );
+			}
 		}
 		
 	}
 
 }
+
+
+
+
 
 
 void RegionGraph::Tremaux_data(){	
@@ -443,60 +453,111 @@ void RegionGraph::Tremaux_data(){
 
 	std::cout << "Current Region is  "<< current_Region->id << std::endl;
 	
-	std::set <int> regions_to_visit;
+	
 	// Is it fully connected?
 	if (current_Region->sub_graphs.size() >= 2 ){
 		std::cout << "   Number of subgraphs  "<< current_Region->sub_graphs.size() << ", Should connect region graph  " << std::endl;
-		regions_to_visit.insert(current_Region->id);
 	}
 	
+	std::map<int, std::set< Edge*> > markers_in;
+	std::map<int, std::set< Edge*> > markers_out;
 
 
 	std::cout << "Paths  " << std::endl;
-	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
+	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end(); region_edge_iter ++){
 		std::set<int> connections =  (*region_edge_iter)->Nodes_ids;
+		int connected_region;
 		if (*(connections.begin() ) == current_Region->id){
 			std::cout << "  ( " << *(connections.begin() )<< " , "<< *(connections.rbegin() )  << " )"<< std::endl;
+			connected_region = *(connections.rbegin() );
 		}
 		else{
 			std::cout << "  ( " << *(connections.rbegin() )<< " , "<< *(connections.begin() )  << " )"<< std::endl;
+			connected_region = *(connections.begin() );
 		} 	
 		
 		if( (*region_edge_iter)->Edges_in_border.size() == 0 ){
 			std::cout << "     no link "<< std::endl;
+			std::set< Edge*> empty_set;
+			markers_out[connected_region] = empty_set;
+			markers_in[connected_region] = empty_set;
 		}
-		bool link_in  = false;
-		bool link_out = false;
+
+
 		for(std::vector <Edge*>::iterator edge_iter =  (*region_edge_iter)->Edges_in_border.begin(); edge_iter !=  (*region_edge_iter)->Edges_in_border.end(); edge_iter++  ){
 			Edge *current_edge = *edge_iter;
+			std::set< Edge*> empty_set;
+			markers_out[connected_region] = empty_set;
+			markers_in[connected_region]  = empty_set;
+			
 			int region_from = current_edge->from->info.region_label;
 			int region_to   = current_edge->to->info.region_label;
-			std::cout << "     from " <<  region_from  << " to "<< region_to;
+//			std::cout << "     from " <<  region_from  << " to "<< region_to;
 			
 			if( region_from == current_Region->id){
-				std::cout << ", link out " <<  std::endl;
-				link_out = true;
+//				std::cout << ", link out " <<  std::endl;
+				markers_out[connected_region].insert(*edge_iter);
+
 			}
 			else{
-				std::cout << ", link in " <<  std::endl;
-				link_in = true;
+//				std::cout << ", link in " <<  std::endl;
+				markers_in[connected_region].insert(*edge_iter);
 			}
 			
 		}
-		if( link_out == false ){
-			if (*(connections.begin() ) == current_Region->id){
-				regions_to_visit.insert(*(connections.rbegin() ));
-			}
-			else{
-				regions_to_visit.insert(*(connections.begin() ));
-			} 
+	
 
-		}		
-				
+		
 	}
 	
 
 
+	///////////////////////////	
+	std::cout << "  Nodes to visit "<< std::endl;
+	std::map<int, std::vector<int> > regions_per_marks;
+	
+	
+	for( std::map<int, std::set< Edge*> >::iterator  marker_iter = markers_in.begin(); marker_iter != markers_in.end(); marker_iter ++){
+		int number_of_marks = 0;
+		int current_region = (*marker_iter).first;
+		std::cout << "     Region "<< (*marker_iter).first << ":";			
+		
+		if(markers_in [current_region].size() > 0){
+			std::cout << "  marked in ";	
+			number_of_marks++;		
+		}
+		if( markers_out[current_region].size() > 0){
+			number_of_marks++;
+			std::cout << "  marked out ";			
+		}
+		std::cout<< ", Total Marks: "<< number_of_marks << std::endl;
+		regions_per_marks[number_of_marks].push_back(current_region);
+				
+	}
+	
+	if( regions_per_marks[0].size() > 0){
+		std::cout<< "Nodes to explore: ";
+		for(std::vector<int>::iterator int_iter = regions_per_marks[0].begin(); int_iter != regions_per_marks[0].end(); int_iter ++ ){
+			std::cout<< *int_iter<<"    ";
+		}
+		std::cout << std::endl;
+	}
+	else if(regions_per_marks[1].size() > 0){
+		std::cout<< "Nodes to explore: ";
+		for(std::vector<int>::iterator int_iter = regions_per_marks[1].begin(); int_iter != regions_per_marks[1].end(); int_iter ++ ){
+			if( markers_out[*int_iter].size() == 0){
+				std::cout<< *int_iter<<"    ";
+			}
+		}
+		std::cout << std::endl;
+	}
+	else{
+		std::cout<< "Map Ready or has errors: "<< std::endl;
+	}
+	
+	
+	
+	////////////////////////////
 
 
 }
