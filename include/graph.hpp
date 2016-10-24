@@ -87,6 +87,9 @@ class Region_Node{
 	Region_Node* predecesor;	
 	std::vector<cv::Point> contour;
 	std::vector<Region_Edge*> connected;
+	
+	std::set< Edge*> marker_in;
+	std::set< Edge*> marker_out;
 };
 ////////////////////////////////////////////////////
 
@@ -131,6 +134,7 @@ class RegionGraph{
 	void evaluate_list_connectivity(std::list <Node*> list_in, int name);
 	void build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image);
 	void find_edges_between_regions();
+	void find_center_of_regions();
 
 	int current_node_id;
 	

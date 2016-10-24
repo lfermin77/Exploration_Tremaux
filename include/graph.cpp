@@ -80,7 +80,9 @@ std::ostream& operator<<(std::ostream& os, RegionGraph& Graph){
 
 //	os << "Number of Nodes per Region "<< "\n";
 	for (RegionNodeMapper::iterator Region_iter = Graph.Region_Nodes_Map.begin(); Region_iter != Graph.Region_Nodes_Map.end(); Region_iter++){
-		os << "   Region "<< (*Region_iter).first  <<": Number of Nodes: "<< (*Region_iter).second->nodes_inside.size() ;
+		os << "   Region "<< (*Region_iter).first  <<": Number of Nodes: "<< (*Region_iter).second->nodes_inside.size() << "\n";
+		if ((*Region_iter).second->id != -1)
+			os << "        Center "<<  (*Region_iter).second->Node_Center->info.position << "\n";
 		os << "        Subgraphs "<<  (*Region_iter).second->sub_graphs.size() << "\n";
 		for( std::list < std::list <Node*> >::iterator it = (*Region_iter).second->sub_graphs.begin();it != (*Region_iter).second->sub_graphs.end(); it++ ){
 			os << "        Subgraphs size "<<  (*it).size() << " nodes" <<"\n";
@@ -248,6 +250,9 @@ int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_marke
 	
 	find_edges_between_regions();
 //	std::cout << "   Edges Between Regions Added "<< std::endl;
+
+	find_center_of_regions();
+	std::cout << "   Center of Regions Found "<< std::endl;
 	///////
 	return 1;
 }
@@ -441,7 +446,36 @@ void RegionGraph::find_edges_between_regions(){
 }
 
 
+void RegionGraph::find_center_of_regions(){
 
+	for (RegionNodeMapper::iterator reg_it = Region_Nodes_Map.begin(); reg_it != Region_Nodes_Map.end();reg_it ++){
+		Region_Node* current_region = (*reg_it).second;
+		
+		if (current_region->id != -1){
+			// Find center of nodes
+			std::complex<double> cum_position (0,0);
+			for (std::list <Node*>::iterator node_iter = current_region->nodes_inside.begin(); node_iter != current_region->nodes_inside.end(); node_iter++){
+				cum_position += (*node_iter)->info.position;
+			} 
+			cum_position /= (double)Region_Nodes_Map.size();
+			
+			//Find the node closest to the center
+			float min_dist = std::numeric_limits<float>::infinity();
+			Node* min_node=*( current_region->nodes_inside.begin() );
+			for (std::list <Node*>::iterator node_iter = current_region->nodes_inside.begin(); node_iter != current_region->nodes_inside.end(); node_iter++){
+				float norm = std::norm(cum_position - (*node_iter)->info.position);
+				if(norm < min_dist){
+					min_dist = norm;
+					min_node = *node_iter;
+				}
+			} 		
+			//Assign that node
+			current_region->Node_Center = min_node;
+			
+		
+		}
+	}
+}
 
 
 
