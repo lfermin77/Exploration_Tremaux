@@ -70,6 +70,7 @@ class Region_Edge{
 	public:
 	std::vector <Edge*> Edges_in_border;
 	std::vector<cv::Point> frontier;
+	std::vector < std::vector<cv::Point> > segmented_frontier;
 	float shortest_distance;
 	std::set<int> Nodes_ids;
 	
@@ -128,6 +129,7 @@ class RegionGraph{
 	int build_Region_Graph(std::vector<geometry_msgs::Point> edge_markers, nav_msgs::MapMetaData info, cv::Mat  Tag_image, cv::Mat  original_image);
 	friend std::ostream& operator<<(std::ostream& os, RegionGraph& Graph);
 	void Tremaux_data();
+
 	
 	protected:
 	void extract_subgraph();
@@ -135,8 +137,11 @@ class RegionGraph{
 	void build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image);
 	void find_edges_between_regions();
 	void find_center_of_regions();
+//	std::vector< std::vector < cv::Point > > segment_frontier (int region_id);
+	void segment_frontier (int region_id, cv::Mat  Tag_image);
 
 	int current_node_id;
+	nav_msgs::MapMetaData image_info;
 	
 	std::unordered_map <int,Node*> Nodes_Map;
 	std::unordered_map <int,Edge*> Edges_Map;
