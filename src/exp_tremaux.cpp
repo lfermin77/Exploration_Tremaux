@@ -156,6 +156,11 @@ class ROS_handler
 //				std::cout << Tremaux_Graph;
 				Tremaux_Graph.Tremaux_data();
 				
+//				std::vector < std::complex <double> >  region_frontier = Tremaux_Graph.collect_frontiers();
+//				publish_markers(region_frontier);
+
+				publish_markers(Tremaux_Graph.collect_all_frontiers());
+				
 				data_ready = map_received = path_received = graph_received = tagged_image_received = false;
 				
 				
@@ -178,7 +183,7 @@ class ROS_handler
 		}
 
 		
-		int publish_markers(RegionGraph Tremaux_Graph) {
+		int publish_markers(std::vector < std::complex <double> >  region_frontier) {
 			
 			visualization_msgs::Marker marker;
 		
@@ -210,7 +215,15 @@ class ROS_handler
 		
 			marker.points.clear();
 
-//			for()
+			for(int i=0;i< region_frontier.size();i++){
+				geometry_msgs::Point point_from;
+				
+				point_from.x = region_frontier[i].real();
+				point_from.y = region_frontier[i].imag();
+				point_from.z = 0;
+				
+				marker.points.push_back(point_from);
+			}
 			
 			
 		

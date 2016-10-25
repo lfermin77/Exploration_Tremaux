@@ -520,6 +520,58 @@ void RegionGraph::segment_frontier (int region_id, cv::Mat  Tag_image){
 
 }
 
+std::vector<std::complex<double> > RegionGraph::collect_frontiers(){
+	int a=1;
+	std::vector<std::complex<double> > points_in_edges;
+	
+	Region_Node* current_region = Region_Nodes_Map[Nodes_Map[current_node_id]->info.region_label];
+	
+	for(std::vector<Region_Edge*>::iterator edge_iter = current_region->connected.begin(); edge_iter != current_region->connected.end(); edge_iter++){
+		Region_Edge* current_edge = *edge_iter;
+		std::vector<cv::Point> pixel_frontier = current_edge->frontier;
+
+		for(std::vector<cv::Point>::iterator point_iter = pixel_frontier.begin(); point_iter != pixel_frontier.end(); point_iter++){
+			cv::Point current_point = *point_iter;
+			double x = current_point.x * image_info.resolution + image_info.origin.position.x;
+			double y = (image_info.height - current_point.y) * image_info.resolution + image_info.origin.position.y;
+
+			std::complex<double> transformed_point(x,y);
+			points_in_edges.push_back(transformed_point);			
+		}
+	}
+	
+	return points_in_edges;
+}
+
+std::vector<std::complex<double> > RegionGraph::collect_all_frontiers(){
+	int a=1;
+	std::vector<std::complex<double> > points_in_edges;
+	
+//	Region_Node* current_region = Region_Nodes_Map[Nodes_Map[current_node_id]->info.region_label];
+
+	for(RegionNodeMapper::iterator node_iter = Region_Nodes_Map.begin();  node_iter != Region_Nodes_Map.end(); node_iter++){
+		Region_Node* current_region = (*node_iter).second;
+		
+		for(std::vector<Region_Edge*>::iterator edge_iter = current_region->connected.begin(); edge_iter != current_region->connected.end(); edge_iter++){
+			Region_Edge* current_edge = *edge_iter;
+			std::vector<cv::Point> pixel_frontier = current_edge->frontier;
+		
+			for(std::vector<cv::Point>::iterator point_iter = pixel_frontier.begin(); point_iter != pixel_frontier.end(); point_iter++){
+				cv::Point current_point = *point_iter;
+				double x = current_point.x * image_info.resolution + image_info.origin.position.x;
+				double y = (image_info.height - current_point.y) * image_info.resolution + image_info.origin.position.y;
+		
+				std::complex<double> transformed_point(x,y);
+				points_in_edges.push_back(transformed_point);			
+			}
+		}
+	
+	}
+	return points_in_edges;
+}
+
+
+
 
 void RegionGraph::Tremaux_data(){	
 	

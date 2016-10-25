@@ -237,6 +237,14 @@ Visualization Manager:
         my_namespace: true
       Queue Size: 100
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /Exploration_Choices
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -313,5 +321,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1276
-  X: 55
+  X: 996
   Y: 14
