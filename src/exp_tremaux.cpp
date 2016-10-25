@@ -124,7 +124,7 @@ class ROS_handler
 //////////////
 		void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 		{
-			std::cout << "New Image"<< std::endl;
+//			std::cout << "New Image"<< std::endl;
 			cv_bridge::CvImagePtr temporal_ptr;
 
 			try
@@ -162,7 +162,7 @@ class ROS_handler
 				publish_markers(Tremaux_Graph.collect_all_frontiers());
 				
 				data_ready = map_received = path_received = graph_received = tagged_image_received = false;
-				
+				std::cout << std::endl << std::endl;	
 				
 			}
 			else{

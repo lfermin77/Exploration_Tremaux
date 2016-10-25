@@ -255,15 +255,20 @@ int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_marke
 	find_center_of_regions();
 //	std::cout << "   Center of Regions Found "<< std::endl;
 
-	segment_frontier (Nodes_Map[current_node_id]->info.region_label, Tag_image );
+//	segment_frontier (Nodes_Map[current_node_id]->info.region_label, Tag_image );
+/*
+	std::set<int> touching_regions;
+	touching_regions.insert(-1);
+	touching_regions.insert(Nodes_Map[current_node_id]->info.region_label);
 	
+	RegionEdgeMapper::iterator reg_it = Region_Edges_Map.find(touching_regions);
+	if(reg_it != Region_Edges_Map.end() ){
+		segment_edge (touching_regions, Tag_image );
+	}
+*/
+	segment_every_edge (Nodes_Map[current_node_id]->info.region_label, Tag_image);
 
 	
-	std::complex<double> current_position = Nodes_Map[current_node_id]->info.position;
-	current_position = (current_position - origin)/(double)info.resolution;
-	int x = round(current_position.real() );
-	int y = round(current_position.imag() );
-	cv::Point current_pixel_position(x,info.height - y);
 
 
 	///////
@@ -490,31 +495,53 @@ void RegionGraph::find_center_of_regions(){
 	}
 }
 
-//std::vector< std::vector < cv::Point > > RegionGraph::segment_frontier (int region_id){
-void RegionGraph::segment_frontier (int region_id, cv::Mat  Tag_image){
+
+
+void RegionGraph::segment_every_edge (int region_id, cv::Mat  Tag_image){
+//	Region_Node* current_region = Region_Nodes_Map[Nodes_Map[current_node_id]->info.region_label];
+	Region_Node* current_region = Region_Nodes_Map[region_id];
+	
+	
+	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_region->connected.begin(); region_edge_iter != current_region->connected.end();region_edge_iter++){
+		segment_edge ( (*region_edge_iter)->Nodes_ids , Tag_image);
+	}
+
+	
+	
+}
+
+
+//void RegionGraph::segment_frontier (int region_id, cv::Mat  Tag_image){
+void RegionGraph::segment_edge (std::set<int> edge_region_index, cv::Mat  Tag_image){
 	cv::Mat frontier_image(Tag_image.size(), CV_8U);
+	/*
 	std::set < int > edge_region_index;
 	edge_region_index.insert(-1);
 	edge_region_index.insert(region_id);
-	
+	*/
 	std::cout <<  "Region index ["<< *(edge_region_index.begin() ) << ","<<*(edge_region_index.rbegin() ) << "]" <<std::endl;
 	
 	Region_Edge* current_region_edge = Region_Edges_Map[edge_region_index];
 	std::vector<cv::Point> frontier_points = current_region_edge->frontier;
 	
-	std::cout <<  "Points in Frontier "<< std::endl;
 	for(int i=0; i < frontier_points.size();i++ ){
-//		std::cout <<  " ( "<<frontier_points[i].x << " , "<< frontier_points[i].y << " )"  << std::endl;
 		frontier_image.at<uchar>(frontier_points[i])=255;
 	}
+	cv::dilate(frontier_image, frontier_image,cv::Mat(),    cv::Point(-1,-1) , 2 );
 	
-	std::vector<std::vector<cv::Point> > contours;
+	std::vector<std::vector<cv::Point> > contours, contours_cleaned;
 	std::vector<cv::Vec4i> hierarchy;
 	
 	cv::findContours( frontier_image, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE, cv::Point(0, 0) );
+	
+	for(int i=0; i< contours.size();i++){
+		if(contours[i].size()>10){
+			contours_cleaned.push_back(contours[i]);
+		}
+	}
 
-	std::cout <<  "Different Frontiers: "<< contours.size() << std::endl;	
-	current_region_edge->segmented_frontier = contours;
+	std::cout <<  "   Different Frontiers: "<< contours_cleaned.size() << std::endl;	
+	current_region_edge->segmented_frontier = contours_cleaned;
 
 
 
