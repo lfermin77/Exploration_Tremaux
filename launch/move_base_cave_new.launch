@@ -9,7 +9,7 @@
   <node pkg="cg_mrslam" type="sr_slam_map" name="graph_slam" >
   </node>
   
-  <node pkg="inc_dude" type="inc_dude" name="inc_DuDe" >
+  <node pkg="inc_dude" type="inc_dude" name="inc_DuDe" args="2 ">
   </node>
   
 

@@ -156,17 +156,19 @@ class ROS_handler
 //				std::cout << Tremaux_Graph;
 				Tremaux_Graph.Tremaux_data();
 				
-//				std::vector < std::complex <double> >  region_frontier = Tremaux_Graph.collect_frontiers();
-//				publish_markers(region_frontier);
 
 				publish_markers(Tremaux_Graph.collect_all_frontiers());
+				
+				cv::Mat edge_image = Tremaux_Graph.segment_current_frontier ( image_tagged);
+				grad = edge_image.clone();
+
 				
 				data_ready = map_received = path_received = graph_received = tagged_image_received = false;
 				std::cout << std::endl << std::endl;	
 				
 			}
 			else{
-				grad = image_tagged;
+//				grad = image_tagged;
 			}
 			
 			cv_ptr->encoding = sensor_msgs::image_encodings::TYPE_32FC1;			grad.convertTo(grad, CV_32F);

@@ -130,6 +130,7 @@ class RegionGraph{
 	friend std::ostream& operator<<(std::ostream& os, RegionGraph& Graph);
 	std::vector<std::complex<double> > collect_frontiers();
 	std::vector<std::complex<double> > collect_all_frontiers();
+	cv::Mat segment_current_frontier ( cv::Mat  Tag_image);
 
 	void Tremaux_data();
 
@@ -142,9 +143,10 @@ class RegionGraph{
 	void find_center_of_regions();
 //	std::vector< std::vector < cv::Point > > segment_frontier (int region_id);
 //	void segment_frontier (int region_id, cv::Mat  Tag_image);
-	void segment_edge (std::set<int> edge_region_index, cv::Mat  Tag_image);
-	void segment_every_edge (int region_id, cv::Mat  Tag_image);
 
+	void segment_every_edge (int region_id, cv::Mat  Tag_image);
+	cv::Mat segment_edge (std::set<int> edge_region_index, cv::Mat  Tag_image);
+	
 	int current_node_id;
 	nav_msgs::MapMetaData image_info;
 	
