@@ -615,7 +615,7 @@ std::vector<std::complex<double> > RegionGraph::collect_all_frontiers(){
 			for(std::vector<Region_Edge*>::iterator edge_iter = current_region->connected.begin(); edge_iter != current_region->connected.end(); edge_iter++){
 				Region_Edge* current_edge = *edge_iter;
 				std::vector<cv::Point> pixel_frontier = current_edge->frontier;
-			
+				/*
 				for(std::vector<cv::Point>::iterator point_iter = pixel_frontier.begin(); point_iter != pixel_frontier.end(); point_iter++){
 					cv::Point current_point = *point_iter;
 					double x = current_point.x * image_info.resolution + image_info.origin.position.x;
@@ -624,6 +624,21 @@ std::vector<std::complex<double> > RegionGraph::collect_all_frontiers(){
 					std::complex<double> transformed_point(x,y);
 					points_in_edges.push_back(transformed_point);			
 				}
+				// */ 
+				std::vector< std::vector< cv::Point> > pixel_frontier_segmented = current_edge->segmented_frontier;
+				for(int i=0; i<pixel_frontier_segmented.size();i++){
+					
+					int median_index = floor(pixel_frontier_segmented[i].size()/4);
+					
+					cv::Point current_point = pixel_frontier_segmented[i][median_index];
+					double x = current_point.x * image_info.resolution + image_info.origin.position.x;
+					double y = (image_info.height - current_point.y) * image_info.resolution + image_info.origin.position.y;
+			
+					std::complex<double> transformed_point(x,y);
+					points_in_edges.push_back(transformed_point);			
+					
+				}
+				
 			}
 		}
 		
