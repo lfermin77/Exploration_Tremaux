@@ -2,6 +2,24 @@
 
 
 
+geometry_msgs::PoseStamped construct_msg(std::complex<double> position, double angle){
+	geometry_msgs::PoseStamped pose_msg;
+	
+	pose_msg.pose.position.x = position.real();
+	pose_msg.pose.position.y = position.imag();
+	pose_msg.pose.position.z = 0;
+
+	pose_msg.pose.orientation.x = 0;
+	pose_msg.pose.orientation.y = 0;
+	pose_msg.pose.orientation.z = sin(angle/2);
+	pose_msg.pose.orientation.w = cos(angle/2);
+	
+	return pose_msg;
+}
+
+
+
+
 ////Graph as adjacency list nested class
 
 node_info::node_info(){
@@ -532,7 +550,7 @@ cv::Mat RegionGraph::segment_edge (std::set<int> edge_region_index, cv::Mat  Tag
 	edge_region_index.insert(-1);
 	edge_region_index.insert(region_id);
 	*/
-	std::cout <<  "Region index ["<< *(edge_region_index.begin() ) << ","<<*(edge_region_index.rbegin() ) << "]" <<std::endl;
+//	std::cout <<  "Region index ["<< *(edge_region_index.begin() ) << ","<<*(edge_region_index.rbegin() ) << "]" <<std::endl;
 	
 	Region_Edge* current_region_edge = Region_Edges_Map[edge_region_index];
 	std::vector<cv::Point> frontier_points = current_region_edge->frontier;
@@ -555,7 +573,7 @@ cv::Mat RegionGraph::segment_edge (std::set<int> edge_region_index, cv::Mat  Tag
 		}
 	}
 
-	std::cout <<  "   Different Frontiers: "<< contours_cleaned.size() << std::endl;	
+//	std::cout <<  "   Different Frontiers: "<< contours_cleaned.size() << std::endl;	
 	current_region_edge->segmented_frontier = contours_cleaned;
 
 	return frontier_image;
@@ -650,9 +668,125 @@ std::vector<std::complex<double> > RegionGraph::collect_all_frontiers(){
 }
 
 
+geometry_msgs::PoseStamped RegionGraph::extract_exploration_goal( std::vector<int> input_regions){
+
+	std::vector<std::complex<double> > exploration_goals;
+	int choices_sizes = input_regions.size();
+	
+	geometry_msgs::PoseStamped goal_to_publish;
+
+	switch(choices_sizes){
+		case 0:
+			std::cout << " No choices, check map" << std::endl;
+			break;
+			
+		case 1:
+			std::cout << " Only one choice, easy... i guess" << std::endl;
+			goal_to_publish = choose_closer_frontier(input_regions[0]);
+
+			break;
+			
+		default:
+			std::cout << " Multiple choices, using pseudorandom" << std::endl;
+			// Eliminate unexplored regions
+			std::vector<int>::iterator iter = std::find(input_regions.begin(), input_regions.end(), -1) ;			
+			if(iter != input_regions.end()){
+				input_regions.erase(iter);
+			}
+			int rand_index = std::rand() % (input_regions.size());
+			//Choose random
+			std::cout << " chosen is: " << input_regions[rand_index]<< std::endl;			
+
+			goal_to_publish = choose_closer_frontier(input_regions[rand_index]);
+			
+			break;				
+		}
+		return goal_to_publish;
+		////
+}
+
+geometry_msgs::PoseStamped RegionGraph::choose_closer_frontier(int region){
+	int current_region_id = Nodes_Map[current_node_id]->info.region_label;
 
 
-void RegionGraph::Tremaux_data(){	
+	std::set<int> current_edge_frontier ={current_region_id};
+	current_edge_frontier.insert(region);
+	
+	
+	if(region == -1){
+		// choose frontier
+		std::vector < std::vector<cv::Point> > pixel_frontier_segmented = Region_Edges_Map[current_edge_frontier]->segmented_frontier ;	
+		std::vector < std::complex<double> > points_in_edges;
+		//Choose median points in edges
+		for(int i=0; i<pixel_frontier_segmented.size();i++){			
+			int median_index = floor(pixel_frontier_segmented[i].size()/4);
+			
+			cv::Point current_point = pixel_frontier_segmented[i][median_index];
+			double x = current_point.x * image_info.resolution + image_info.origin.position.x;
+			double y = (image_info.height - current_point.y) * image_info.resolution + image_info.origin.position.y;
+	
+			std::complex<double> transformed_point(x,y);
+			points_in_edges.push_back(transformed_point);			
+			
+		}
+		// Choosing the closest to current id
+		std::complex<double> current_pos = Nodes_Map[current_node_id]->info.position;
+		std::complex<double> closest_pos;
+		float min_dist = std::numeric_limits<float>::infinity();
+		double angle=0;
+		
+		for(int i=0; i< points_in_edges.size();i++){
+			std::complex<double> difference = points_in_edges[i] - current_pos;
+			if (abs(difference) < min_dist){
+				min_dist = abs(difference);
+				closest_pos = points_in_edges[i];
+				angle = arg(difference);
+			}
+		}
+		
+		return ( construct_msg(closest_pos,  angle) );		
+	}
+	
+	else{
+		if( Region_Nodes_Map[region]->nodes_inside.size() >1 ){
+			Node* node_to_explore = Region_Nodes_Map[region]->Node_Center;
+			double angle;
+			std::complex<double> node_position = node_to_explore->info.position;
+
+			if (node_to_explore->info.label != 0 ){
+				Node* previous_node = Nodes_Map[node_to_explore->info.label -1 ];
+				angle = arg(node_position  -  previous_node->info.position );
+			}
+			else{
+				angle=0;
+			}
+			return construct_msg(node_position,  angle);		
+
+		}
+		else{
+			//find geometric mean
+			Region_Node* current_region = Region_Nodes_Map[region];
+			std::complex<double> cum_position(0,0);
+			for(int i=0; i < current_region-> contour.size(); i++){
+				cv::Point current_point = current_region-> contour[i];
+				double x = current_point.x * image_info.resolution + image_info.origin.position.x;
+				double y = (image_info.height - current_point.y) * image_info.resolution + image_info.origin.position.y;
+		
+				std::complex<double> transformed_point(x,y);
+				cum_position += transformed_point;
+			}
+			cum_position /= (double)current_region-> contour.size();
+	
+			double angle = arg(cum_position - Nodes_Map[current_node_id]->info.position  );			
+			return construct_msg(cum_position,  angle);		
+		}
+	}
+}
+
+
+
+
+geometry_msgs::PoseStamped RegionGraph::Tremaux_data(){	
 	
 	
 	std::cout << "Current Node id is  "<< current_node_id << std::endl;
@@ -744,8 +878,11 @@ void RegionGraph::Tremaux_data(){
 				
 	}
 	
+	std::vector<int> regions_to_explore;
+	
 	if( regions_per_marks[0].size() > 0){
 		std::cout<< "Nodes to explore with no mark: ";
+		regions_to_explore = regions_per_marks[0];
 		for(std::vector<int>::iterator int_iter = regions_per_marks[0].begin(); int_iter != regions_per_marks[0].end(); int_iter ++ ){
 			std::cout<< *int_iter<<"    ";
 		}
@@ -756,6 +893,7 @@ void RegionGraph::Tremaux_data(){
 		for(std::vector<int>::iterator int_iter = regions_per_marks[1].begin(); int_iter != regions_per_marks[1].end(); int_iter ++ ){
 			if( markers_out[*int_iter].size() == 0){
 				std::cout<< *int_iter<<"    ";
+				regions_to_explore.push_back( *int_iter );
 			}
 		}
 		std::cout << std::endl;
@@ -763,8 +901,9 @@ void RegionGraph::Tremaux_data(){
 	else{
 		std::cout<< "Region Ready "<< std::endl;
 	}
-	
-	
+	//////////////
+	return(extract_exploration_goal (regions_to_explore) );
+		
 	////////////////////////////
 
 
@@ -788,8 +927,6 @@ Tremaux
      2.2.2  else, pick direction with fewest marks (random if more than once)
 
 */
-
-
 
 
 

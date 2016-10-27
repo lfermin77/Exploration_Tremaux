@@ -6,6 +6,7 @@
 #include <tf/transform_listener.h>
 #include "visualization_msgs/Marker.h"
 #include "geometry_msgs/PoseArray.h"
+#include "geometry_msgs/PoseStamped.h"
 
 
 //openCV
@@ -38,6 +39,7 @@ class ROS_handler
 	
     ros::Publisher  pose_array_pub_;	
     ros::Publisher  markers_pub_;	
+    ros::Publisher  goal_pub_;	
 	ros::Timer timer;
 	
 	nav_msgs::MapMetaData map_info;				
@@ -67,6 +69,7 @@ class ROS_handler
 			
 			Uncertainty_sub_ = n.subscribe("query_Uncertainty", 10, &ROS_handler::UncertaintyCallback, this);
 			pose_array_pub_  = n.advertise<geometry_msgs::PoseArray>("query_Poses", 10);
+			goal_pub_  = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 10);
 			
 			map_received = path_received = graph_received = tagged_image_received = false;
 			
@@ -154,12 +157,12 @@ class ROS_handler
 				RegionGraph Tremaux_Graph;
 				Tremaux_Graph.build_Region_Graph(edges, map_info, image_tagged, occupancy_image);
 //				std::cout << Tremaux_Graph;
-				Tremaux_Graph.Tremaux_data();
+				publish_goal( Tremaux_Graph.Tremaux_data() );
 				
 
 				publish_markers(Tremaux_Graph.collect_all_frontiers());
 				
-				cv::Mat edge_image = Tremaux_Graph.segment_current_frontier ( image_tagged);
+				cv::Mat edge_image = Tremaux_Graph.segment_current_frontier ( image_tagged );
 				grad = edge_image.clone();
 
 				
@@ -205,9 +208,9 @@ class ROS_handler
 			marker.pose.orientation.y = 0.0;
 			marker.pose.orientation.z = 0.0;
 			marker.pose.orientation.w = 1.0;
-			marker.scale.x = 0.05;
-			marker.scale.y = 0.1;
-			marker.scale.z = 0.1;
+			marker.scale.x = 0.2;
+			marker.scale.y = 0.2;
+			marker.scale.z = 0.2;
 			marker.color.a = 1.0; // Don't forget to set the alpha!
 			marker.color.r = 1.0;
 			marker.color.g = 0.0;
@@ -236,7 +239,12 @@ class ROS_handler
 			return 0;
 		}
 		
-	
+		int publish_goal(geometry_msgs::PoseStamped  goal_msg) {
+			goal_msg.header.frame_id = "map";
+			goal_msg.header.stamp = ros::Time();
+			
+			goal_pub_.publish(goal_msg);
+		}
 
 /////////////////////////
 //// UTILITY

@@ -10,6 +10,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include "visualization_msgs/Marker.h"
 #include "nav_msgs/GetMap.h"
+#include "geometry_msgs/PoseStamped.h"
 
 
 
@@ -132,7 +133,7 @@ class RegionGraph{
 	std::vector<std::complex<double> > collect_all_frontiers();
 	cv::Mat segment_current_frontier ( cv::Mat  Tag_image);
 
-	void Tremaux_data();
+	geometry_msgs::PoseStamped Tremaux_data();
 
 	
 	protected:
@@ -146,6 +147,10 @@ class RegionGraph{
 
 	void segment_every_edge (int region_id, cv::Mat  Tag_image);
 	cv::Mat segment_edge (std::set<int> edge_region_index, cv::Mat  Tag_image);
+	geometry_msgs::PoseStamped extract_exploration_goal( std::vector<int> input_regions);
+	geometry_msgs::PoseStamped choose_closer_frontier(int region);
+	
+	
 	
 	int current_node_id;
 	nav_msgs::MapMetaData image_info;
