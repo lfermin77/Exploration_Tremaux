@@ -682,7 +682,8 @@ geometry_msgs::PoseStamped RegionGraph::extract_exploration_goal( std::vector<in
 			
 		case 1:
 			std::cout << " Only one choice, easy... i guess" << std::endl;
-			goal_to_publish = choose_closer_frontier(input_regions[0]);
+			
+			goal_to_publish = choose_closer_frontier(input_regions);
 
 			break;
 			
@@ -695,9 +696,9 @@ geometry_msgs::PoseStamped RegionGraph::extract_exploration_goal( std::vector<in
 			}
 			int rand_index = std::rand() % (input_regions.size());
 			//Choose random
-			std::cout << " chosen is: " << input_regions[rand_index]<< std::endl;			
+//			std::cout << " chosen is: " << input_regions[rand_index]<< std::endl;			
 
-			goal_to_publish = choose_closer_frontier(input_regions[rand_index]);
+			goal_to_publish = choose_closer_frontier(input_regions);
 			
 			break;				
 		}
@@ -705,16 +706,19 @@ geometry_msgs::PoseStamped RegionGraph::extract_exploration_goal( std::vector<in
 		////
 }
 
-geometry_msgs::PoseStamped RegionGraph::choose_closer_frontier(int region){
+geometry_msgs::PoseStamped RegionGraph::choose_closer_frontier(std::vector<int> region){
 	int current_region_id = Nodes_Map[current_node_id]->info.region_label;
 
+	geometry_msgs::PoseStamped pose_out;
 
 	std::set<int> current_edge_frontier ={current_region_id};
-	current_edge_frontier.insert(region);
+	std::complex<double> current_pos = Nodes_Map[current_node_id]->info.position;
 	
 	
-	if(region == -1){
+	if(region[0] == -1){
 		// choose frontier
+		current_edge_frontier.insert(region[0]);
+		
 		std::vector < std::vector<cv::Point> > pixel_frontier_segmented = Region_Edges_Map[current_edge_frontier]->segmented_frontier ;	
 		std::vector < std::complex<double> > points_in_edges;
 		//Choose median points in edges
@@ -730,7 +734,7 @@ geometry_msgs::PoseStamped RegionGraph::choose_closer_frontier(int region){
 			
 		}
 		// Choosing the closest to current id
-		std::complex<double> current_pos = Nodes_Map[current_node_id]->info.position;
+
 		std::complex<double> closest_pos;
 		float min_dist = std::numeric_limits<float>::infinity();
 		double angle=0;
@@ -744,43 +748,58 @@ geometry_msgs::PoseStamped RegionGraph::choose_closer_frontier(int region){
 			}
 		}
 		
-		return ( construct_msg(closest_pos,  angle) );		
+		pose_out = construct_msg(closest_pos,  angle) ;		
 	}
 	
 	else{
-		if( Region_Nodes_Map[region]->nodes_inside.size() >1 ){
-			Node* node_to_explore = Region_Nodes_Map[region]->Node_Center;
-			double angle;
-			std::complex<double> node_position = node_to_explore->info.position;
-
-			if (node_to_explore->info.label != 0 ){
-				Node* previous_node = Nodes_Map[node_to_explore->info.label -1 ];
-				angle = arg(node_position  -  previous_node->info.position );
-			}
-			else{
-				angle=0;
-			}
-			return construct_msg(node_position,  angle);		
-
-		}
-		else{
-			//find geometric mean
-			Region_Node* current_region = Region_Nodes_Map[region];
-			std::complex<double> cum_position(0,0);
-			for(int i=0; i < current_region-> contour.size(); i++){
-				cv::Point current_point = current_region-> contour[i];
-				double x = current_point.x * image_info.resolution + image_info.origin.position.x;
-				double y = (image_info.height - current_point.y) * image_info.resolution + image_info.origin.position.y;
+		//// Missing checking all nodes
+		float min_dist = std::numeric_limits<float>::infinity();
+		int min_index = region[0];
+		std::complex<double> min_position;
+		double min_angle = 0;
 		
-				std::complex<double> transformed_point(x,y);
-				cum_position += transformed_point;
-			}
-			cum_position /= (double)current_region-> contour.size();
+		for (int i=0; i < region.size(); i++){
+			////
+			if( Region_Nodes_Map[region[0]]->nodes_inside.size() >1 ){ // Choose  center node
+				Node* node_to_explore = Region_Nodes_Map[region[0] ]->Node_Center;
+				double angle;
+				std::complex<double> node_position = node_to_explore->info.position;
 	
-			double angle = arg(cum_position - Nodes_Map[current_node_id]->info.position  );			
-			return construct_msg(cum_position,  angle);		
+				if (node_to_explore->info.label != 0 ){
+					Node* previous_node = Nodes_Map[node_to_explore->info.label -1 ];
+					angle = arg(node_position  -  previous_node->info.position );
+				}
+				else{
+					angle=0;
+				}
+				
+				
+//				return construct_msg(node_position,  angle);		
+	
+			}
+			////			
+			else{// No nodes inside choose geometric center
+				//find geometric center
+				Region_Node* current_region = Region_Nodes_Map[region[0] ];
+				std::complex<double> cum_position(0,0);
+				for(int i=0; i < current_region-> contour.size(); i++){
+					cv::Point current_point = current_region-> contour[i];
+					double x = current_point.x * image_info.resolution + image_info.origin.position.x;
+					double y = (image_info.height - current_point.y) * image_info.resolution + image_info.origin.position.y;
+			
+					std::complex<double> transformed_point(x,y);
+					cum_position += transformed_point;
+				}
+				cum_position /= (double)current_region-> contour.size();
+		
+				double angle = arg(cum_position - Nodes_Map[current_node_id]->info.position  );			
+//				return construct_msg(cum_position,  angle);		
+			}
+			///////
 		}
+		pose_out = construct_msg(min_position,  min_angle) ;			
 	}
+	return pose_out;
 }
 
 

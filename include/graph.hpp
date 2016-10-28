@@ -148,7 +148,7 @@ class RegionGraph{
 	void segment_every_edge (int region_id, cv::Mat  Tag_image);
 	cv::Mat segment_edge (std::set<int> edge_region_index, cv::Mat  Tag_image);
 	geometry_msgs::PoseStamped extract_exploration_goal( std::vector<int> input_regions);
-	geometry_msgs::PoseStamped choose_closer_frontier(int region);
+	geometry_msgs::PoseStamped choose_closer_frontier(std::vector<int> region);
 	
 	
 	
