@@ -284,7 +284,8 @@ int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_marke
 		segment_edge (touching_regions, Tag_image );
 	}
 */
-	segment_every_edge (Nodes_Map[current_node_id]->info.region_label, Tag_image);
+//	segment_every_edge (Nodes_Map[current_node_id]->info.region_label, Tag_image);
+	segment_every_edge (Nodes_Map[current_node_id]->info.region_label, original_image);
 
 	
 
@@ -418,19 +419,22 @@ void RegionGraph::build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image
 
 
 	for (edge_points_mapper::iterator it2 = mapping_set_to_point_array.begin(); it2 != mapping_set_to_point_array.end(); it2 ++){
-		Region_Edge *InsideEdge;
-		InsideEdge = new Region_Edge;
-		
-		InsideEdge->frontier = it2->second;
-		std::set<int> conection =it2->first;
-		InsideEdge->First_Region  = Region_Nodes_Map[ (*conection.begin()) ];
-		InsideEdge->Second_Region = Region_Nodes_Map[ (*conection.rbegin()) ];
-		InsideEdge->Nodes_ids = conection;
-		
-		Region_Nodes_Map[ (*conection.begin()) ]->connected.push_back(InsideEdge);
-		Region_Nodes_Map[ (*conection.rbegin()) ]->connected.push_back(InsideEdge);
-		
-		Region_Edges_Map[conection] =InsideEdge;	
+		if(it2->second.size() > 10){ //Avoids sparse connections
+			Region_Edge *InsideEdge;
+			InsideEdge = new Region_Edge;
+			
+			InsideEdge->frontier = it2->second;
+			std::set<int> conection =it2->first;
+			InsideEdge->First_Region  = Region_Nodes_Map[ (*conection.begin()) ];
+			InsideEdge->Second_Region = Region_Nodes_Map[ (*conection.rbegin()) ];
+			InsideEdge->Nodes_ids = conection;
+			
+			Region_Nodes_Map[ (*conection.begin()) ]->connected.push_back(InsideEdge);
+			Region_Nodes_Map[ (*conection.rbegin()) ]->connected.push_back(InsideEdge);
+			
+			Region_Edges_Map[conection] =InsideEdge;
+		}
+				
 	}
 	// std::cout << "      Edge Extracted "<< std::endl;
 
@@ -528,13 +532,13 @@ void RegionGraph::find_center_of_regions(){
 
 
 
-void RegionGraph::segment_every_edge (int region_id, cv::Mat  Tag_image){
+void RegionGraph::segment_every_edge (int region_id, cv::Mat  original_image){
 //	Region_Node* current_region = Region_Nodes_Map[Nodes_Map[current_node_id]->info.region_label];
 	Region_Node* current_region = Region_Nodes_Map[region_id];
 	
 	
 	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_region->connected.begin(); region_edge_iter != current_region->connected.end();region_edge_iter++){
-		segment_edge ( (*region_edge_iter)->Nodes_ids , Tag_image);
+		segment_edge ( (*region_edge_iter)->Nodes_ids , original_image);
 	}
 
 	
@@ -543,8 +547,12 @@ void RegionGraph::segment_every_edge (int region_id, cv::Mat  Tag_image){
 
 
 //void RegionGraph::segment_frontier (int region_id, cv::Mat  Tag_image){
-cv::Mat RegionGraph::segment_edge (std::set<int> edge_region_index, cv::Mat  Tag_image){
-	cv::Mat frontier_image = cv::Mat::zeros(Tag_image.size(), CV_8U);
+cv::Mat RegionGraph::segment_edge (std::set<int> edge_region_index, cv::Mat  original_image){
+	cv::Mat frontier_image = cv::Mat::zeros(original_image.size(), CV_8U);
+	cv::Mat obstacle_image = (original_image > 75) & (original_image<101);
+	
+	cv::dilate(obstacle_image, obstacle_image, cv::Mat(),    cv::Point(-1,-1) , 5 );
+	
 	/*
 	std::set < int > edge_region_index;
 	edge_region_index.insert(-1);
@@ -555,11 +563,13 @@ cv::Mat RegionGraph::segment_edge (std::set<int> edge_region_index, cv::Mat  Tag
 	Region_Edge* current_region_edge = Region_Edges_Map[edge_region_index];
 	std::vector<cv::Point> frontier_points = current_region_edge->frontier;
 	
+	
 	for(int i=0; i < frontier_points.size();i++ ){
 		frontier_image.at<uchar>(frontier_points[i])=255;
 	}
 
-	cv::dilate(frontier_image, frontier_image,cv::Mat(),    cv::Point(-1,-1) , 2 );
+	frontier_image &= ~obstacle_image;
+//	cv::dilate(frontier_image, frontier_image,cv::Mat(),    cv::Point(-1,-1) , 2 );
 	cv::Mat destroyable = frontier_image.clone();
 		
 	std::vector<std::vector<cv::Point> > contours, contours_cleaned;
@@ -715,8 +725,7 @@ geometry_msgs::PoseStamped RegionGraph::choose_closer_frontier(std::vector<int> 
 	std::complex<double> current_pos = Nodes_Map[current_node_id]->info.position;
 	
 	
-	if(region[0] == -1){
-		// choose frontier
+	if(region[0] == -1){		// choose frontier
 		current_edge_frontier.insert(region[0]);
 		
 		std::vector < std::vector<cv::Point> > pixel_frontier_segmented = Region_Edges_Map[current_edge_frontier]->segmented_frontier ;	
@@ -752,27 +761,29 @@ geometry_msgs::PoseStamped RegionGraph::choose_closer_frontier(std::vector<int> 
 	}
 	
 	else{
-		//// Missing checking all nodes
+		//// Checking all nodes
 		float min_dist = std::numeric_limits<float>::infinity();
 		int min_index = region[0];
 		std::complex<double> min_position;
 		double min_angle = 0;
 		
 		for (int i=0; i < region.size(); i++){
+			std::complex<double> current_position;
+			double current_angle ;
 			////
-			if( Region_Nodes_Map[region[0]]->nodes_inside.size() >1 ){ // Choose  center node
-				Node* node_to_explore = Region_Nodes_Map[region[0] ]->Node_Center;
-				double angle;
+			if( Region_Nodes_Map[region[i]]->nodes_inside.size() > 1 ){ // Choose  center node
+				Node* node_to_explore = Region_Nodes_Map[region[i] ]->Node_Center;
+//				double angle;
 				std::complex<double> node_position = node_to_explore->info.position;
 	
 				if (node_to_explore->info.label != 0 ){
 					Node* previous_node = Nodes_Map[node_to_explore->info.label -1 ];
-					angle = arg(node_position  -  previous_node->info.position );
+					current_angle = arg(node_position  -  previous_node->info.position );
 				}
 				else{
-					angle=0;
+					current_angle=0;
 				}
-				
+				current_position = node_position;
 				
 //				return construct_msg(node_position,  angle);		
 	
@@ -780,10 +791,10 @@ geometry_msgs::PoseStamped RegionGraph::choose_closer_frontier(std::vector<int> 
 			////			
 			else{// No nodes inside choose geometric center
 				//find geometric center
-				Region_Node* current_region = Region_Nodes_Map[region[0] ];
+				Region_Node* current_region = Region_Nodes_Map[region[i] ];
 				std::complex<double> cum_position(0,0);
-				for(int i=0; i < current_region-> contour.size(); i++){
-					cv::Point current_point = current_region-> contour[i];
+				for(int j=0; j < current_region-> contour.size(); j++){
+					cv::Point current_point = current_region-> contour[j];
 					double x = current_point.x * image_info.resolution + image_info.origin.position.x;
 					double y = (image_info.height - current_point.y) * image_info.resolution + image_info.origin.position.y;
 			
@@ -792,11 +803,22 @@ geometry_msgs::PoseStamped RegionGraph::choose_closer_frontier(std::vector<int> 
 				}
 				cum_position /= (double)current_region-> contour.size();
 		
-				double angle = arg(cum_position - Nodes_Map[current_node_id]->info.position  );			
+				current_angle = arg(cum_position - Nodes_Map[current_node_id]->info.position  );			
+				
+				current_position = cum_position;
 //				return construct_msg(cum_position,  angle);		
 			}
 			///////
+			
+			float distance = abs(current_position - current_pos);
+			if(distance < min_dist){
+				min_position = current_position;
+				min_angle = current_angle;
+				min_index = region[i];
+			}
+			////
 		}
+		std::cout << "  Chosen region is " <<  min_index << std::endl;
 		pose_out = construct_msg(min_position,  min_angle) ;			
 	}
 	return pose_out;

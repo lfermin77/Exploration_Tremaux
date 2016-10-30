@@ -127,7 +127,7 @@ class ROS_handler
 //////////////
 		void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 		{
-//			std::cout << "New Image"<< std::endl;
+			std::cout << "New Image"<< std::endl;
 			cv_bridge::CvImagePtr temporal_ptr;
 
 			try
