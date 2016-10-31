@@ -551,7 +551,7 @@ cv::Mat RegionGraph::segment_edge (std::set<int> edge_region_index, cv::Mat  ori
 	cv::Mat frontier_image = cv::Mat::zeros(original_image.size(), CV_8U);
 	cv::Mat obstacle_image = (original_image > 75) & (original_image<101);
 	
-	cv::dilate(obstacle_image, obstacle_image, cv::Mat(),    cv::Point(-1,-1) , 5 );
+	cv::dilate(obstacle_image, obstacle_image, cv::Mat(),    cv::Point(-1,-1) , 7 );
 	
 	/*
 	std::set < int > edge_region_index;
@@ -691,14 +691,14 @@ geometry_msgs::PoseStamped RegionGraph::extract_exploration_goal( std::vector<in
 			break;
 			
 		case 1:
-			std::cout << " Only one choice, easy... i guess" << std::endl;
+			std::cout << " Only one choice! " << std::endl;
 			
 			goal_to_publish = choose_closer_frontier(input_regions);
 
 			break;
 			
 		default:
-			std::cout << " Multiple choices, using pseudorandom" << std::endl;
+			std::cout << " Multiple choices, eliminate frontier and choose closer" << std::endl;
 			// Eliminate unexplored regions
 			std::vector<int>::iterator iter = std::find(input_regions.begin(), input_regions.end(), -1) ;			
 			if(iter != input_regions.end()){
@@ -732,9 +732,14 @@ geometry_msgs::PoseStamped RegionGraph::choose_closer_frontier(std::vector<int> 
 		std::vector < std::complex<double> > points_in_edges;
 		//Choose median points in edges
 		for(int i=0; i<pixel_frontier_segmented.size();i++){			
-			int median_index = floor(pixel_frontier_segmented[i].size()/4);
+			// Choose median
+			int median_index = floor(pixel_frontier_segmented[i].size()/4);			
+//			cv::Point current_point = pixel_frontier_segmented[i][median_index];
 			
-			cv::Point current_point = pixel_frontier_segmented[i][median_index];
+			//Choose center
+			cv::Moments mu = cv::moments(pixel_frontier_segmented[i]);
+			cv::Point current_point( mu.m10/mu.m00 , mu.m01/mu.m00 );
+			
 			double x = current_point.x * image_info.resolution + image_info.origin.position.x;
 			double y = (image_info.height - current_point.y) * image_info.resolution + image_info.origin.position.y;
 	
@@ -827,7 +832,8 @@ geometry_msgs::PoseStamped RegionGraph::choose_closer_frontier(std::vector<int> 
 
 
 
-geometry_msgs::PoseStamped RegionGraph::Tremaux_data(){	
+//geometry_msgs::PoseStamped RegionGraph::Tremaux_data( ){	
+int RegionGraph::Tremaux_data( geometry_msgs::PoseStamped& pose_msg ){	
 	
 	
 	std::cout << "Current Node id is  "<< current_node_id << std::endl;
@@ -835,10 +841,12 @@ geometry_msgs::PoseStamped RegionGraph::Tremaux_data(){
 
 	std::cout << "Current Region is  "<< current_Region->id << std::endl;
 	
+	int region_completed = 1;
 	
 	// Is it fully connected?
 	if (current_Region->sub_graphs.size() >= 2 ){
 		std::cout << "   Number of subgraphs  "<< current_Region->sub_graphs.size() << ", Should connect region graph  " << std::endl;
+		region_completed = -1;
 	}
 	
 	std::map<int, std::set< Edge*> > markers_in;
@@ -943,7 +951,9 @@ geometry_msgs::PoseStamped RegionGraph::Tremaux_data(){
 		std::cout<< "Region Ready "<< std::endl;
 	}
 	//////////////
-	return(extract_exploration_goal (regions_to_explore) );
+	pose_msg = extract_exploration_goal (regions_to_explore);
+//	return(extract_exploration_goal (regions_to_explore) );
+	return( region_completed );
 		
 	////////////////////////////
 

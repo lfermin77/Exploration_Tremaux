@@ -49,6 +49,7 @@ class ROS_handler
 	cv::Mat image_map, image_tagged;
 	
 	bool map_received, path_received, graph_received, tagged_image_received;
+	geometry_msgs::PoseStamped pose_to_publish; 
 	
 	public:
 		ROS_handler(const std::string& mapname) : mapname_(mapname),  it_(n)
@@ -157,8 +158,16 @@ class ROS_handler
 				RegionGraph Tremaux_Graph;
 				Tremaux_Graph.build_Region_Graph(edges, map_info, image_tagged, occupancy_image);
 //				std::cout << Tremaux_Graph;
-				publish_goal( Tremaux_Graph.Tremaux_data() );
+//				publish_goal( Tremaux_Graph.Tremaux_data() );
 				
+
+				int region_completed = Tremaux_Graph.Tremaux_data(pose_to_publish) ;  
+				if (region_completed > 0){
+					publish_goal(pose_to_publish);
+				}
+				else{
+					publish_goal(pose_to_publish);
+				}
 
 				publish_markers(Tremaux_Graph.collect_all_frontiers());
 				
