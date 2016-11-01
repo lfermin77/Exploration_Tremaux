@@ -120,7 +120,7 @@ class ROS_handler
 					counter=0;
 				}
 				
-				if(counter > 100){
+				if(counter > 50){
 					geometry_msgs::PoseStamped pose_out;
 					pose_out.pose.orientation = msg.poses.front().orientation;
 					double angle = 2*atan2(pose_out.pose.orientation.z, pose_out.pose.orientation.w);
