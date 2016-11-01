@@ -286,6 +286,7 @@ int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_marke
 */
 //	segment_every_edge (Nodes_Map[current_node_id]->info.region_label, Tag_image);
 	segment_every_edge (Nodes_Map[current_node_id]->info.region_label, original_image);
+	segment_every_edge (-1 , original_image);
 
 	
 
@@ -688,6 +689,8 @@ geometry_msgs::PoseStamped RegionGraph::extract_exploration_goal( std::vector<in
 	switch(choices_sizes){
 		case 0:
 			std::cout << " No choices, check map" << std::endl;
+			check_map( goal_to_publish );
+			
 			break;
 			
 		case 1:
@@ -730,10 +733,10 @@ geometry_msgs::PoseStamped RegionGraph::choose_closer_frontier(std::vector<int> 
 		
 		std::vector < std::vector<cv::Point> > pixel_frontier_segmented = Region_Edges_Map[current_edge_frontier]->segmented_frontier ;	
 		std::vector < std::complex<double> > points_in_edges;
-		//Choose median points in edges
-		for(int i=0; i<pixel_frontier_segmented.size();i++){			
+		//Choose mean points in edges
+		for(int i=0; i < pixel_frontier_segmented.size();i++){			
 			// Choose median
-			int median_index = floor(pixel_frontier_segmented[i].size()/4);			
+//			int median_index = floor(pixel_frontier_segmented[i].size()/4);			
 //			cv::Point current_point = pixel_frontier_segmented[i][median_index];
 			
 			//Choose center
@@ -830,6 +833,63 @@ geometry_msgs::PoseStamped RegionGraph::choose_closer_frontier(std::vector<int> 
 }
 
 
+
+int RegionGraph::check_map( geometry_msgs::PoseStamped& pose_msg ){	
+	int ready = -1;
+	Region_Node* unexplored_region = Region_Nodes_Map[-1];
+
+	std::vector<Region_Edge*> region_frontiers = unexplored_region->connected;
+//	std::cout << "Other frontiers size " << region_frontiers.size() << std::endl;
+	if(region_frontiers.size() == 0){
+		std::cout << "No other frontiers "  << std::endl;
+		ready = 1;
+	}
+	else{
+		std::vector < std::complex<double> > points_in_edges;
+		
+		for(int i=0; i < region_frontiers.size();i++){
+			std::vector < std::vector<cv::Point> > pixel_frontier_segmented = region_frontiers[i]->segmented_frontier ;
+			
+			//Choose mean points in edges
+			for(int i=0; i < pixel_frontier_segmented.size();i++){			
+				//Choose center
+				cv::Moments mu = cv::moments(pixel_frontier_segmented[i]);
+				cv::Point current_point( mu.m10/mu.m00 , mu.m01/mu.m00 );
+				
+				double x = current_point.x * image_info.resolution + image_info.origin.position.x;
+				double y = (image_info.height - current_point.y) * image_info.resolution + image_info.origin.position.y;
+		
+				std::complex<double> transformed_point(x,y);
+				points_in_edges.push_back(transformed_point);						
+			}
+		}
+//		std::cout << "Segmented frontier size " << points_in_edges.size() << std::endl;
+		
+
+
+		// Choosing the closest to current id
+
+		std::complex<double> closest_pos;
+		float min_dist = std::numeric_limits<float>::infinity();
+		double angle=0;
+		std::complex<double> current_pos = Nodes_Map[current_node_id]->info.position;
+		
+		for(int i=0; i< points_in_edges.size();i++){
+			std::complex<double> difference = points_in_edges[i] - current_pos;
+			if (abs(difference) < min_dist){
+				min_dist = abs(difference);
+				closest_pos = points_in_edges[i];
+				angle = arg(difference);
+			}
+		}
+		
+		pose_msg = construct_msg(closest_pos,  angle) ;		
+		
+		
+	}
+	////
+	return ready;
+}
 
 
 //geometry_msgs::PoseStamped RegionGraph::Tremaux_data( ){	
@@ -949,6 +1009,7 @@ int RegionGraph::Tremaux_data( geometry_msgs::PoseStamped& pose_msg ){
 	}
 	else{
 		std::cout<< "Region Ready "<< std::endl;
+		region_completed=0;
 	}
 	//////////////
 	pose_msg = extract_exploration_goal (regions_to_explore);
@@ -966,6 +1027,7 @@ int RegionGraph::Tremaux_data( geometry_msgs::PoseStamped& pose_msg ){
 int RegionGraph::connect_inside_region( geometry_msgs::PoseStamped& pose_msg ){
 	
 	int status = 1;
+	float distance_threshold = 0.05;
 	std::cout << " Trying to connect inside" << std::endl;		
 	Region_Node* current_Region = Region_Nodes_Map[  Nodes_Map[current_node_id]->info.region_label   ];
 	
@@ -986,8 +1048,6 @@ int RegionGraph::connect_inside_region( geometry_msgs::PoseStamped& pose_msg ){
 		}
 	}
 	//////
-	
-	std::cout << " connect sub-graph " << current_subgraph << std::endl;
 
 	std::map <int, float> min_dist_mapper;
 	std::map <int, Node*> min_Node_mapper;
@@ -1003,7 +1063,7 @@ int RegionGraph::connect_inside_region( geometry_msgs::PoseStamped& pose_msg ){
 		int current_sub_region = (*( (*graph_list_iter).begin() ))->info.sub_region;
 	
 		if( current_sub_region != current_subgraph){
-			std::cout << "   analizing sub region " <<  current_sub_region  ;
+//			std::cout << "   analizing sub region " <<  current_sub_region  ;
 
 			// Calculate minimum
 			float min_subgraph_distance = std::numeric_limits<float>::infinity();			
@@ -1023,13 +1083,13 @@ int RegionGraph::connect_inside_region( geometry_msgs::PoseStamped& pose_msg ){
 				}
 			}
 
-			if (min_subgraph_distance < 0.15){
-				std::cout << ", Considered connected "  << std::endl;			
+			if (min_subgraph_distance < distance_threshold){
+//				std::cout << ", Considered connected "  << std::endl;			
 			}
 			else{
 				min_dist_mapper[current_sub_region] = min_subgraph_distance;
 				min_Node_mapper[current_sub_region] = current_Node_min;
-				std::cout << ", with distance: " <<  min_subgraph_distance  << std::endl;
+//				std::cout << ", with distance: " <<  min_subgraph_distance  << std::endl;
 			}
 			
 		}
@@ -1050,7 +1110,7 @@ int RegionGraph::connect_inside_region( geometry_msgs::PoseStamped& pose_msg ){
 				min_subgraph_distance = (*map_iter).second;
 			}
 		}
-		std::cout << "Choosing position " << min_Node_mapper[min_index]->info.position  << std::endl;
+
 		{
 			double current_angle ;		
 			Node* node_to_explore = min_Node_mapper[min_index];
