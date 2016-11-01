@@ -45,6 +45,7 @@ class ROS_handler
 	nav_msgs::MapMetaData map_info;				
 	std::vector<geometry_msgs::Point> edges;	
 	geometry_msgs::Point Last_node;
+	int counter;
 	
 	cv::Mat image_map, image_tagged;
 	
@@ -72,6 +73,7 @@ class ROS_handler
 			pose_array_pub_  = n.advertise<geometry_msgs::PoseArray>("query_Poses", 10);
 			goal_pub_  = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 10);
 			
+			counter =0;
 			map_received = path_received = graph_received = tagged_image_received = false;
 			
 		}
@@ -84,14 +86,12 @@ class ROS_handler
 
 		void mapCallback(const nav_msgs::OccupancyGridConstPtr& map){
 			map_info = map->info;		
-			
 			///////////////////////Occupancy to image	
 			cv::Mat grad, img(map->info.height, map->info.width, CV_8U);
 			img.data = (unsigned char *)(&(map->data[0]) );
 			cv::flip(img,img,0);
 			image_map = img.clone();
-			map_received = true;
-			
+			map_received = true;			
 		}
 
 
@@ -105,11 +105,35 @@ class ROS_handler
 ////////////////
 		void trajectoryCallback(const geometry_msgs::PoseArray &msg)
 		{
-			/*
-			for(int i=0; i< msg.poses.size();i++){
-				std::cout << "Pose is "<< msg.poses[i].position.x  <<std::endl;
-			}//*/
-			Last_node = msg.poses.front().position;
+
+			geometry_msgs::Point New_node = msg.poses.front().position;
+			// UNSTUCK
+			{
+				float difference_x = New_node.x - Last_node.x;
+				float difference_y = New_node.y - Last_node.y;
+				
+				if(difference_x*difference_x +  difference_y*difference_y  < 0.001){
+					counter++;
+		//			std::cout << "Counter is " << counter << std::endl;
+				}
+				else{
+					counter=0;
+				}
+				
+				if(counter > 100){
+					geometry_msgs::PoseStamped pose_out;
+					pose_out.pose.orientation = msg.poses.front().orientation;
+					double angle = 2*atan2(pose_out.pose.orientation.z, pose_out.pose.orientation.w);
+	
+					float dist = 0.15;
+					pose_out.pose.position.x = New_node.x + dist*cos(angle);
+					pose_out.pose.position.y = New_node.y + dist*sin(angle);
+					
+					publish_goal(pose_out);		
+					//*/		
+				}
+			}
+			Last_node = New_node;
 			path_received = true;
 		}
 
