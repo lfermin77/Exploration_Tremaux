@@ -157,18 +157,14 @@ class ROS_handler
 
 				RegionGraph Tremaux_Graph;
 				Tremaux_Graph.build_Region_Graph(edges, map_info, image_tagged, occupancy_image);
-//				std::cout << Tremaux_Graph;
-//				publish_goal( Tremaux_Graph.Tremaux_data() );
-				
+//				std::cout << Tremaux_Graph;			
 
 				int region_completed = Tremaux_Graph.Tremaux_data(pose_to_publish) ;  
-				if (region_completed > 0){
-					publish_goal(pose_to_publish);
+				if (region_completed < 0){
+					Tremaux_Graph.connect_inside_region(pose_to_publish);
 				}
-				else{
-					publish_goal(pose_to_publish);
-				}
-
+				publish_goal(pose_to_publish);
+					
 				publish_markers(Tremaux_Graph.collect_all_frontiers());
 				
 				cv::Mat edge_image = Tremaux_Graph.segment_current_frontier ( image_tagged );

@@ -135,6 +135,8 @@ class RegionGraph{
 
 //	geometry_msgs::PoseStamped Tremaux_data();
 	int Tremaux_data( geometry_msgs::PoseStamped& pose_msg );
+	int connect_inside_region( geometry_msgs::PoseStamped& pose_msg );
+	int connect_inside_region_greedy( geometry_msgs::PoseStamped& pose_msg );
 	
 	protected:
 	void extract_subgraph();
