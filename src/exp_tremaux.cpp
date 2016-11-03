@@ -112,7 +112,7 @@ class ROS_handler
 				float difference_x = New_node.x - Last_node.x;
 				float difference_y = New_node.y - Last_node.y;
 				
-				if(difference_x*difference_x +  difference_y*difference_y  < 0.001){
+				if(sqrt( difference_x*difference_x +  difference_y*difference_y)  < 0.05){
 					counter++;
 		//			std::cout << "Counter is " << counter << std::endl;
 				}
@@ -184,9 +184,12 @@ class ROS_handler
 //				std::cout << Tremaux_Graph;			
 
 				int region_completed = Tremaux_Graph.Tremaux_data(pose_to_publish) ;  
+
+				/*
 				if (region_completed < 0){
 					Tremaux_Graph.connect_inside_region(pose_to_publish);
 				}
+				*/
 				publish_goal(pose_to_publish);
 					
 				publish_markers(Tremaux_Graph.collect_all_frontiers());

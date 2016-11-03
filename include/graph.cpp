@@ -686,6 +686,7 @@ geometry_msgs::PoseStamped RegionGraph::extract_exploration_goal( std::vector<in
 	
 	geometry_msgs::PoseStamped goal_to_publish;
 
+
 	switch(choices_sizes){
 		case 0:
 			std::cout << " No choices, check map" << std::endl;
@@ -837,10 +838,27 @@ geometry_msgs::PoseStamped RegionGraph::choose_closer_frontier(std::vector<int> 
 int RegionGraph::check_map( geometry_msgs::PoseStamped& pose_msg ){	
 	int ready = -1;
 	Region_Node* unexplored_region = Region_Nodes_Map[-1];
+	pose_msg.pose.orientation.w = 0; //bad formed quaternion
 
+
+
+	
+			
 	std::vector<Region_Edge*> region_frontiers = unexplored_region->connected;
 //	std::cout << "Other frontiers size " << region_frontiers.size() << std::endl;
-	if(region_frontiers.size() == 0){
+	
+//	std::cout << "Checking map "  << std::endl;
+	int sum_of_points = 0;
+	for(int i=0;i<region_frontiers.size();i++){
+		int points_in_frontier = region_frontiers[i]->segmented_frontier.size();
+		sum_of_points += points_in_frontier;
+//		std::cout << "  Frontier ("  << *(region_frontiers[i]->Nodes_ids.begin() ) <<","<< *(region_frontiers[i]->Nodes_ids.rbegin() ) << ") has "<< points_in_frontier  << " points"<<std::endl;		
+		
+	}
+	
+	
+//	if(region_frontiers.size() == 0){
+	if(sum_of_points == 0){
 		std::cout << "No other frontiers "  << std::endl;
 		ready = 1;
 	}
