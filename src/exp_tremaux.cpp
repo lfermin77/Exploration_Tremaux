@@ -17,8 +17,9 @@
 //Graph
 #include "graph.hpp"
 
-
-
+// Standard
+#include "time.h"
+#include <fstream>
 
 
 
@@ -51,6 +52,15 @@ class ROS_handler
 	
 	bool map_received, path_received, graph_received, tagged_image_received;
 	geometry_msgs::PoseStamped pose_to_publish; 
+	geometry_msgs::PoseStamped Last_goal; 
+
+	//Statistics
+	float distance;
+	float cum_time;
+	float time_counter;	
+	std::ofstream myfile;
+	ros::Subscriber save_sub_;	
+	
 	
 	public:
 		ROS_handler(const std::string& mapname) : mapname_(mapname),  it_(n)
@@ -71,11 +81,20 @@ class ROS_handler
 			
 			Uncertainty_sub_ = n.subscribe("query_Uncertainty", 10, &ROS_handler::UncertaintyCallback, this);
 			pose_array_pub_  = n.advertise<geometry_msgs::PoseArray>("query_Poses", 10);
-			goal_pub_  = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 10);
+			goal_pub_  = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal2", 10);
 			
 			counter =0;
 			map_received = path_received = graph_received = tagged_image_received = false;
 			
+			//Statistics
+			save_sub_ = n.subscribe("save_file", 10, &ROS_handler::UncertaintyCallback, this);
+			Last_goal.header.seq = -1;
+			distance = 0;
+			time_counter = 0;
+			cum_time=0;
+			
+			myfile.open("/home/unizar/ROS_Indigo/catkin_ws/src/Exploration_Tremaux/results/Results.txt");
+			myfile << "Iteration, Distance, Area \n";
 		}
 
 
@@ -107,12 +126,17 @@ class ROS_handler
 		{
 
 			geometry_msgs::Point New_node = msg.poses.front().position;
+			
+			float difference_x = New_node.x - Last_node.x;
+			float difference_y = New_node.y - Last_node.y;
+			float delta_distance =	sqrt( difference_x*difference_x +  difference_y*difference_y);
+			
+			distance += delta_distance;
 			// UNSTUCK
 			{
-				float difference_x = New_node.x - Last_node.x;
-				float difference_y = New_node.y - Last_node.y;
+
 				
-				if(sqrt( difference_x*difference_x +  difference_y*difference_y)  < 0.05){
+				if( delta_distance  < 0.05){
 					counter++;
 		//			std::cout << "Counter is " << counter << std::endl;
 				}
@@ -120,7 +144,7 @@ class ROS_handler
 					counter=0;
 				}
 				
-				if(counter > 50){
+				if(counter > 20){
 					geometry_msgs::PoseStamped pose_out;
 					pose_out.pose.orientation = msg.poses.front().orientation;
 					double angle = 2*atan2(pose_out.pose.orientation.z, pose_out.pose.orientation.w);
@@ -130,6 +154,10 @@ class ROS_handler
 					pose_out.pose.position.y = New_node.y + dist*sin(angle);
 					
 					publish_goal(pose_out);		
+					
+					//Reset last goal
+
+					Last_goal.header.seq=-1;
 					//*/		
 				}
 			}
@@ -178,20 +206,57 @@ class ROS_handler
 
 			if(data_ready){
 				cv::Mat occupancy_image = image_map.clone();
+				
+
 
 				RegionGraph Tremaux_Graph;
+
+				clock_t time_before = clock();
 				Tremaux_Graph.build_Region_Graph(edges, map_info, image_tagged, occupancy_image);
+				clock_t time_after = clock();
+
+				float time_elapsed = 1000*((float)(time_after - time_before) )/CLOCKS_PER_SEC;
+//				std::cout << "Elapsed time in building: "<< time_elapsed <<" ms" << std::endl<< std::endl;
 //				std::cout << Tremaux_Graph;			
 
+//				time_before = clock();
 				int region_completed = Tremaux_Graph.Tremaux_data(pose_to_publish) ;  
+				time_after = clock();
+				time_elapsed = 1000*((float)(time_after - time_before) )/CLOCKS_PER_SEC;
+				std::cout << std::endl<< std::endl;
+//				std::cout << "Elapsed time in extracting goal: "<< time_elapsed <<" ms" << std::endl<< std::endl;
+//				std::cout << "Elapsed time total: "<< time_elapsed <<" ms" << std::endl;
+				std::cout << "Current distance traveled: "<< distance <<" m" << std::endl;
+								
+				time_counter ++;				cum_time += time_elapsed;
+				std::cout << "Elapsed time average: "<< cum_time/time_counter <<" ms" << std::endl<< std::endl;
+				//*
+				if (region_completed < 0  & Last_goal.header.seq != -1){
+//					Tremaux_Graph.connect_inside_region(pose_to_publish);
 
-				/*
-				if (region_completed < 0){
-					Tremaux_Graph.connect_inside_region(pose_to_publish);
-				}
-				*/
-				publish_goal(pose_to_publish);
+					float difference_x = Last_goal.pose.position.x - Last_node.x;
+					float difference_y = Last_goal.pose.position.y - Last_node.y;
 					
+					float diff = sqrt( difference_x*difference_x +  difference_y*difference_y);
+					Last_goal.header.seq = 0;
+						
+					if(diff < 0.1){				// Is it near the pose?
+						publish_goal(pose_to_publish);
+						Last_goal.pose = pose_to_publish.pose;
+						Last_goal.header.seq = -1;
+					}
+					else{
+						std::cout << " Trying to connect Sub-Graphs" << std::endl;		
+					}
+					
+				}
+				else
+				//*/
+				{
+					publish_goal(pose_to_publish);
+					Last_goal.pose = pose_to_publish.pose;
+					Last_goal.header.seq = 0;
+				}	
 				publish_markers(Tremaux_Graph.collect_all_frontiers());
 				
 				cv::Mat edge_image = Tremaux_Graph.segment_current_frontier ( image_tagged );

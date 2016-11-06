@@ -440,19 +440,21 @@ void RegionGraph::build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image
 	// std::cout << "      Edge Extracted "<< std::endl;
 
 	for (edge_points_mapper::iterator it2 = mapping_frontier_to_point_array.begin(); it2 != mapping_frontier_to_point_array.end(); it2 ++){
-		Region_Edge *InsideEdge;
-		InsideEdge = new Region_Edge;
-		
-		InsideEdge->frontier = it2->second;
-		std::set<int> conection =it2->first;
-		InsideEdge->First_Region  = Region_Nodes_Map[ (*conection.begin()) ];
-		InsideEdge->Second_Region = Region_Nodes_Map[ (*conection.rbegin()) ];
-		InsideEdge->Nodes_ids = conection;
-		
-		Region_Nodes_Map[ (*conection.begin()) ]->connected.push_back(InsideEdge);
-		Region_Nodes_Map[ (*conection.rbegin()) ]->connected.push_back(InsideEdge);
-		
-		Region_Edges_Map[conection] =InsideEdge;	
+		if(it2->second.size() > 0){
+			Region_Edge *InsideEdge;
+			InsideEdge = new Region_Edge;
+			
+			InsideEdge->frontier = it2->second;
+			std::set<int> conection =it2->first;
+			InsideEdge->First_Region  = Region_Nodes_Map[ (*conection.begin()) ];
+			InsideEdge->Second_Region = Region_Nodes_Map[ (*conection.rbegin()) ];
+			InsideEdge->Nodes_ids = conection;
+			
+			Region_Nodes_Map[ (*conection.begin()) ]->connected.push_back(InsideEdge);
+			Region_Nodes_Map[ (*conection.rbegin()) ]->connected.push_back(InsideEdge);
+			
+			Region_Edges_Map[conection] =InsideEdge;	
+		}
 	}
 	// std::cout << "      Frontier Extracted "<< std::endl;
 
