@@ -351,6 +351,24 @@ void RegionGraph::evaluate_list_connectivity(std::list <Node*> list_in, int name
 }
 
 
+int RegionGraph::number_loop_closures(){
+	int number=0;
+	
+	for (std::unordered_map <int,Edge*>::iterator map_iter = Edges_Map.begin(); map_iter != Edges_Map.end(); map_iter++  ){
+		int first_node  = (*map_iter).second->from->info.label;
+		int second_node = (*map_iter).second->to->info.label;
+		
+		if (second_node - first_node != 1){
+			number++;
+		}
+		//
+	}
+	
+	return number;
+}
+
+
+
 
 
 void RegionGraph::build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image){
@@ -1265,7 +1283,6 @@ Tremaux
      2.2.2  else, pick direction with fewest marks (random if more than once)
 
 */
-
 
 
 

@@ -81,7 +81,7 @@ class ROS_handler
 			
 			Uncertainty_sub_ = n.subscribe("query_Uncertainty", 10, &ROS_handler::UncertaintyCallback, this);
 			pose_array_pub_  = n.advertise<geometry_msgs::PoseArray>("query_Poses", 10);
-			goal_pub_  = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal2", 10);
+			goal_pub_  = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 10);
 			
 			counter =0;
 			map_received = path_received = graph_received = tagged_image_received = false;
@@ -94,7 +94,7 @@ class ROS_handler
 			cum_time=0;
 			
 			myfile.open("/home/unizar/ROS_Indigo/catkin_ws/src/Exploration_Tremaux/results/Results.txt");
-			myfile << "Iteration, Distance, Area \n";
+			myfile << "Iteration, Processing_Time, Distance, Area, LoopClosures \n";
 		}
 
 
@@ -224,12 +224,18 @@ class ROS_handler
 				time_after = clock();
 				time_elapsed = 1000*((float)(time_after - time_before) )/CLOCKS_PER_SEC;
 				std::cout << std::endl<< std::endl;
-//				std::cout << "Elapsed time in extracting goal: "<< time_elapsed <<" ms" << std::endl<< std::endl;
-//				std::cout << "Elapsed time total: "<< time_elapsed <<" ms" << std::endl;
 				std::cout << "Current distance traveled: "<< distance <<" m" << std::endl;
 								
 				time_counter ++;				cum_time += time_elapsed;
-				std::cout << "Elapsed time average: "<< cum_time/time_counter <<" ms" << std::endl<< std::endl;
+				float Area = (map_info.resolution)*(map_info.resolution)* (cv::countNonZero(image_tagged) ) ;
+
+				std::cout << "Elapsed time average: "<< cum_time/time_counter <<" ms" << std::endl;
+//				std::cout << "Number of Loop Closures: "<< Tremaux_Graph.number_loop_closures()  << std::endl;
+				std::cout << "Area: "<< Area  << std::endl;
+				std::cout<< std::endl;
+				
+				myfile << time_counter <<", "<< time_elapsed <<", "<<  distance <<", "<< Area <<", "<<  Tremaux_Graph.number_loop_closures()<< "\n";
+
 				//*
 				if (region_completed < 0  & Last_goal.header.seq != -1){
 //					Tremaux_Graph.connect_inside_region(pose_to_publish);

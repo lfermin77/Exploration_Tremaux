@@ -133,10 +133,11 @@ class RegionGraph{
 	std::vector<std::complex<double> > collect_all_frontiers();
 	cv::Mat segment_current_frontier ( cv::Mat  Tag_image);
 
-//	geometry_msgs::PoseStamped Tremaux_data();
 	int Tremaux_data( geometry_msgs::PoseStamped& pose_msg );
 	int connect_inside_region( geometry_msgs::PoseStamped& pose_msg );
 	int connect_inside_region_greedy( geometry_msgs::PoseStamped& pose_msg );
+
+	int number_loop_closures();
 	
 	protected:
 	void extract_subgraph();
