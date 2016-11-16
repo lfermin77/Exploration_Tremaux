@@ -37,6 +37,7 @@ class ROS_handler
 	ros::Subscriber graph_sub_;	
 	ros::Subscriber Uncertainty_sub_;
 	ros::Subscriber trajectory_sub_;
+	ros::Subscriber ground_truth_sub_;
 	
     ros::Publisher  pose_array_pub_;	
     ros::Publisher  markers_pub_;	
@@ -61,14 +62,18 @@ class ROS_handler
 	std::ofstream myfile;
 	ros::Subscriber save_sub_;	
 	
+	std::vector <geometry_msgs::Point> ground_truth;
+	bool read_ground_truth;
+	geometry_msgs::Point *first_pose;
 	
 	public:
 		ROS_handler(const std::string& mapname) : mapname_(mapname),  it_(n)
 		{
 			ROS_INFO("Waiting for the map");
-			map_sub_ = n.subscribe("map", 2, &ROS_handler::mapCallback, this); //mapname_ to include different name
-			trajectory_sub_ = n.subscribe("trajectory", 1, &ROS_handler::trajectoryCallback, this);			
-			graph_sub_ = n.subscribe("SLAM_Graph", 10, &ROS_handler::graphCallback, this);			
+			map_sub_	 		= n.subscribe("map", 2, &ROS_handler::mapCallback, this); //mapname_ to include different name
+			trajectory_sub_ 	= n.subscribe("trajectory", 1, &ROS_handler::trajectoryCallback, this);			
+			ground_truth_sub_ 	= n.subscribe("base_pose_ground_truth", 1, &ROS_handler::ground_truth_Callback, this);			
+			graph_sub_ 			= n.subscribe("SLAM_Graph", 10, &ROS_handler::graphCallback, this);			
 
 			timer = n.createTimer(ros::Duration(0.5), &ROS_handler::metronomeCallback, this);
 			image_pub_ = it_.advertise("/processed_image", 1);
@@ -81,7 +86,7 @@ class ROS_handler
 			
 			Uncertainty_sub_ = n.subscribe("query_Uncertainty", 10, &ROS_handler::UncertaintyCallback, this);
 			pose_array_pub_  = n.advertise<geometry_msgs::PoseArray>("query_Poses", 10);
-			goal_pub_  = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal2", 10);
+			goal_pub_  = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 10);
 			
 			counter =0;
 			map_received = path_received = graph_received = tagged_image_received = false;
@@ -92,6 +97,8 @@ class ROS_handler
 			distance = 0;
 			time_counter = 0;
 			cum_time=0;
+			read_ground_truth = true;
+			first_pose=NULL;
 			
 			myfile.open("/home/unizar/ROS_Indigo/catkin_ws/src/Exploration_Tremaux/results/Results.txt");
 			myfile << "Iteration, Processing_Time, Distance, Area, LoopClosures \n";
@@ -164,6 +171,34 @@ class ROS_handler
 			Last_node = New_node;
 			path_received = true;
 		}
+
+///////////////////////
+		void ground_truth_Callback(const nav_msgs::Odometry::ConstPtr& msg){
+			if(first_pose==NULL){
+				first_pose = new geometry_msgs::Point;
+
+				first_pose->x = msg->pose.pose.position.x;
+				first_pose->y = msg->pose.pose.position.y;
+				first_pose->z=0;
+
+				std::cout<<"First time pose ("<< first_pose->x<<","<<first_pose->y <<")"<<std::endl;
+			}
+			
+			if(read_ground_truth){
+				geometry_msgs::Point current;
+				
+				current.x = msg->pose.pose.position.x;
+				current.y = msg->pose.pose.position.y;
+				current.z=0;
+				
+				ground_truth.push_back(current);
+				
+//				std::cout<<"Ground Truth ("<<x<<","<<y<<")"<<std::endl;
+				std::cout<<"Ground Truth size "<< ground_truth.size() <<std::endl;
+				read_ground_truth = false;
+			}
+		}
+
 
 ////////////////
 		void graphCallback(const visualization_msgs::Marker& graph_msg)
@@ -270,6 +305,7 @@ class ROS_handler
 
 				
 				data_ready = map_received = path_received = graph_received = tagged_image_received = false;
+				read_ground_truth = true;
 				std::cout << std::endl << std::endl;	
 				
 			}
