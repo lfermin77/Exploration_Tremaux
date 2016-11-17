@@ -51,7 +51,7 @@ class ROS_handler
 	
 	cv::Mat image_map, image_tagged;
 	
-	bool map_received, path_received, graph_received, tagged_image_received;
+	bool map_received, path_received, graph_received, tagged_image_received, GT_received;
 	geometry_msgs::PoseStamped pose_to_publish; 
 	geometry_msgs::PoseStamped Last_goal; 
 
@@ -86,10 +86,10 @@ class ROS_handler
 			
 			Uncertainty_sub_ = n.subscribe("query_Uncertainty", 10, &ROS_handler::UncertaintyCallback, this);
 			pose_array_pub_  = n.advertise<geometry_msgs::PoseArray>("query_Poses", 10);
-			goal_pub_  = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 10);
+			goal_pub_	  	 = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 10);
 			
 			counter =0;
-			map_received = path_received = graph_received = tagged_image_received = false;
+			map_received = path_received = graph_received = tagged_image_received = GT_received = false;
 			
 			//Statistics
 			save_sub_ = n.subscribe("save_file", 10, &ROS_handler::UncertaintyCallback, this);
@@ -99,8 +99,9 @@ class ROS_handler
 			cum_time=0;
 			first_pose=NULL;
 			
-			myfile.open("/home/unizar/ROS_Indigo/catkin_ws/src/Exploration_Tremaux/results/Results.txt");
-			myfile << "Iteration, Processing_Time, Distance, Area, LoopClosures \n";
+//			myfile.open("/home/unizar/ROS_Indigo/catkin_ws/src/Exploration_Tremaux/results/Results.txt");    //casa
+			myfile.open("/home/leonardo/ROS_Indigo/catkin_ws/src/Exploration_Tremaux/results/Results.txt");  //uni
+			myfile << "Iteration, Processing_Time, Distance, Area, LoopClosures, Current Error \n";
 		}
 
 
@@ -174,6 +175,7 @@ class ROS_handler
 ///////////////////////
 		void ground_truth_Callback(const visualization_msgs::Marker& GT_msg){
 			ground_truth= GT_msg.points;
+			GT_received= true;
 		}
 
 
@@ -210,7 +212,7 @@ class ROS_handler
 			
 			image_tagged.convertTo(image_tagged, CV_8UC1);
 
-			bool data_ready = map_received & path_received & graph_received & tagged_image_received;	
+			bool data_ready = map_received & path_received & graph_received & tagged_image_received & GT_received;	
 			cv::Mat grad;
 			
 			
@@ -235,18 +237,32 @@ class ROS_handler
 				int region_completed = Tremaux_Graph.Tremaux_data(pose_to_publish) ;  
 				time_after = clock();
 				time_elapsed = 1000*((float)(time_after - time_before) )/CLOCKS_PER_SEC;
-				std::cout << std::endl<< std::endl;
-				std::cout << "Current distance traveled: "<< distance <<" m" << std::endl;
-								
-				time_counter ++;				cum_time += time_elapsed;
-				float Area = (map_info.resolution)*(map_info.resolution)* (cv::countNonZero(image_tagged) ) ;
+				{// RESULTS
+					std::cout << std::endl<< std::endl;
+					std::cout << "Current distance traveled: "<< distance <<" m" << std::endl;
+									
+					time_counter ++;				cum_time += time_elapsed;
+					float Area = (map_info.resolution)*(map_info.resolution)* (cv::countNonZero(image_tagged) ) ;
+	
+					std::cout << "Elapsed time average: "<< cum_time/time_counter <<" ms" << std::endl;
+	//				std::cout << "Number of Loop Closures: "<< Tremaux_Graph.number_loop_closures()  << std::endl;
+					std::cout << "Area: "<< Area  << std::endl;
+					
 
-				std::cout << "Elapsed time average: "<< cum_time/time_counter <<" ms" << std::endl;
-//				std::cout << "Number of Loop Closures: "<< Tremaux_Graph.number_loop_closures()  << std::endl;
-				std::cout << "Area: "<< Area  << std::endl;
-				std::cout<< std::endl;
-				
-				myfile << time_counter <<", "<< time_elapsed <<", "<<  distance <<", "<< Area <<", "<<  Tremaux_Graph.number_loop_closures()<< "\n";
+					
+					float average_error;
+					std::vector<float> error_list = Tremaux_Graph.extract_error_per_node(ground_truth, average_error);
+
+					float current_error = 		error_list.back();			
+					std::cout << "Current_error: "<< current_error  << std::endl;
+					std::cout << "Average_error: "<< average_error  << std::endl;
+					
+					std::cout<< std::endl;
+					
+					
+					myfile << time_counter <<", "<< time_elapsed <<", "<<  distance <<", "<< Area <<", "<<  Tremaux_Graph.number_loop_closures()<<", "<< current_error <<"\n";
+				}
+
 
 				//*
 				if (region_completed < 0  & Last_goal.header.seq != -1){
@@ -281,7 +297,7 @@ class ROS_handler
 				grad = edge_image.clone();
 
 				
-				data_ready = map_received = path_received = graph_received = tagged_image_received = false;
+				data_ready = map_received = path_received = graph_received = tagged_image_received = GT_received = false;
 //				ground_truth.push_back(current_ground_truth);
 				std::cout<<"Ground Truth size "<< ground_truth.size() <<std::endl;
 				std::cout << std::endl << std::endl;	

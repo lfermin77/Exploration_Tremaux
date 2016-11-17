@@ -138,6 +138,10 @@ class RegionGraph{
 	int connect_inside_region_greedy( geometry_msgs::PoseStamped& pose_msg );
 
 	int number_loop_closures();
+	std::complex<double> Last_node_position(){return Nodes_Map[current_node_id]->info.position;};
+	std::vector<float> extract_error_per_node(std::vector<geometry_msgs::Point>  gt_nodes, float & average);
+	
+	
 	
 	protected:
 	void extract_subgraph();

@@ -127,6 +127,32 @@ std::ostream& operator<<(std::ostream& os, RegionGraph& Graph){
 
 
 
+std::vector<float> RegionGraph::extract_error_per_node(std::vector<geometry_msgs::Point>  gt_nodes, float & average){
+	std::vector<float> error_vector;
+//	if(gt_nodes.size() == current_node_id+1){
+	if(true){
+		float cum_error=0;
+		for(int i=0; i < gt_nodes.size();i++){
+			std::complex<double> gt_current(gt_nodes[i].x, gt_nodes[i].y );
+			float difference = abs(gt_current - Nodes_Map[i]->info.position);
+			error_vector.push_back(difference);
+			cum_error += difference;
+//			std::cout <<"Node "<< i <<", GT"<<gt_current  <<",  node id "<< Nodes_Map[i]->info.position <<", Error "<< difference  <<std::endl;
+		}
+//		std::cout <<"Node "<< current_node_id <<",  node id "<< Nodes_Map[current_node_id]->info.position << std::endl;
+		average= cum_error/gt_nodes.size();
+	}
+	else{
+		error_vector.push_back(-1);
+
+	}
+	return error_vector;		
+}
+
+
+
+
+
 int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_markers, nav_msgs::MapMetaData info, cv::Mat  Tag_image, cv::Mat  original_image){
 	
 	image_info = info;
