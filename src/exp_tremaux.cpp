@@ -63,7 +63,7 @@ class ROS_handler
 	ros::Subscriber save_sub_;	
 	
 	std::vector <geometry_msgs::Point> ground_truth;
-	bool read_ground_truth;
+	geometry_msgs::Point current_ground_truth;
 	geometry_msgs::Point *first_pose;
 	
 	public:
@@ -72,7 +72,7 @@ class ROS_handler
 			ROS_INFO("Waiting for the map");
 			map_sub_	 		= n.subscribe("map", 2, &ROS_handler::mapCallback, this); //mapname_ to include different name
 			trajectory_sub_ 	= n.subscribe("trajectory", 1, &ROS_handler::trajectoryCallback, this);			
-			ground_truth_sub_ 	= n.subscribe("base_pose_ground_truth", 1, &ROS_handler::ground_truth_Callback, this);			
+			ground_truth_sub_ 	= n.subscribe("GT_poses", 1, &ROS_handler::ground_truth_Callback, this);			
 			graph_sub_ 			= n.subscribe("SLAM_Graph", 10, &ROS_handler::graphCallback, this);			
 
 			timer = n.createTimer(ros::Duration(0.5), &ROS_handler::metronomeCallback, this);
@@ -97,7 +97,6 @@ class ROS_handler
 			distance = 0;
 			time_counter = 0;
 			cum_time=0;
-			read_ground_truth = true;
 			first_pose=NULL;
 			
 			myfile.open("/home/unizar/ROS_Indigo/catkin_ws/src/Exploration_Tremaux/results/Results.txt");
@@ -173,30 +172,8 @@ class ROS_handler
 		}
 
 ///////////////////////
-		void ground_truth_Callback(const nav_msgs::Odometry::ConstPtr& msg){
-			if(first_pose==NULL){
-				first_pose = new geometry_msgs::Point;
-
-				first_pose->x = msg->pose.pose.position.x;
-				first_pose->y = msg->pose.pose.position.y;
-				first_pose->z=0;
-
-				std::cout<<"First time pose ("<< first_pose->x<<","<<first_pose->y <<")"<<std::endl;
-			}
-			
-			if(read_ground_truth){
-				geometry_msgs::Point current;
-				
-				current.x = msg->pose.pose.position.x;
-				current.y = msg->pose.pose.position.y;
-				current.z=0;
-				
-				ground_truth.push_back(current);
-				
-//				std::cout<<"Ground Truth ("<<x<<","<<y<<")"<<std::endl;
-				std::cout<<"Ground Truth size "<< ground_truth.size() <<std::endl;
-				read_ground_truth = false;
-			}
+		void ground_truth_Callback(const visualization_msgs::Marker& GT_msg){
+			ground_truth= GT_msg.points;
 		}
 
 
@@ -305,7 +282,8 @@ class ROS_handler
 
 				
 				data_ready = map_received = path_received = graph_received = tagged_image_received = false;
-				read_ground_truth = true;
+//				ground_truth.push_back(current_ground_truth);
+				std::cout<<"Ground Truth size "<< ground_truth.size() <<std::endl;
 				std::cout << std::endl << std::endl;	
 				
 			}
