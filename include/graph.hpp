@@ -72,7 +72,7 @@ class Region_Node; //forward declaration
 class Region_Sub_Edge{
 	public:
 	std::vector<cv::Point> frontier;
-	std::vector <Edge*> Edges_in; //Refered to First Region
+	std::vector <Edge*> Edges_in; //Refered to Current Region
 	std::vector <Edge*> Edges_out;
 	
 };

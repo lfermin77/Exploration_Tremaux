@@ -300,18 +300,8 @@ int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_marke
 //	std::cout << "   Center of Regions Found "<< std::endl;
 
 //	segment_frontier (Nodes_Map[current_node_id]->info.region_label, Tag_image );
-/*
-	std::set<int> touching_regions;
-	touching_regions.insert(-1);
-	touching_regions.insert(Nodes_Map[current_node_id]->info.region_label);
-	
-	RegionEdgeMapper::iterator reg_it = Region_Edges_Map.find(touching_regions);
-	if(reg_it != Region_Edges_Map.end() ){
-		segment_edge (touching_regions, Tag_image );
-	}
-*/
-//	segment_every_edge (Nodes_Map[current_node_id]->info.region_label, Tag_image);
-	segment_every_edge (-1 , original_image);
+
+//	segment_every_edge (-1 , original_image);
 	segment_every_edge (Nodes_Map[current_node_id]->info.region_label, original_image);
 
 
@@ -587,8 +577,56 @@ void RegionGraph::segment_every_edge (int region_id, cv::Mat  original_image){
 	
 	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_region->connected.begin(); region_edge_iter != current_region->connected.end();region_edge_iter++){
 		segment_edge ( (*region_edge_iter)->Nodes_ids , original_image);
+		
+		if ( *((*region_edge_iter)->Nodes_ids.begin() ) !=-1){ 
+			// Asign SLAM edges to Region sub-edges
+			for(int i=0;i < (*region_edge_iter)->Edges_in_border.size();i++){
+				Edge* current_edge = (*region_edge_iter)->Edges_in_border[i];
+				std::complex<double> pose_from = current_edge->from->info.position;
+				std::complex<double> pose_to   = current_edge->to   ->info.position;
+				std::complex<double> midle_pose = (pose_from + pose_to)/(double)2;
+				bool found=false;
+				//Find frontier in current sub-edge
+				for (int j=0; j < (*region_edge_iter)->Sub_Edges.size();j++){
+					std::vector<cv::Point> frontier = (*region_edge_iter)->Sub_Edges[j].frontier;
+					// Compare every point in frontier with pose in the middle of edge	
+					for(int z=0; z < frontier.size();z++){				
+						cv::Point current_point = frontier[z];
+						double x = current_point.x * image_info.resolution + image_info.origin.position.x;
+						double y = (image_info.height - current_point.y) * image_info.resolution + image_info.origin.position.y;
+						
+						std::complex<double> transformed_point(x,y);
+						// if near the frontier add it to the edges
+						if (abs(transformed_point - midle_pose )  < 0.6){
+	
+							if(current_edge->from->info.region_label == region_id){
+								(*region_edge_iter)->Sub_Edges[j].Edges_out.push_back(current_edge);
+							}
+							else{
+								(*region_edge_iter)->Sub_Edges[j].Edges_in.push_back(current_edge);
+							}												
+							found= true;
+						}
+						if (found) break;					
+					}
+					if (found) break;
+				}
+				//
+			}
+			////
+		}
+		
 	}
 
+	std::cout << "Region "<<  region_id << std::endl;
+	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_region->connected.begin(); region_edge_iter != current_region->connected.end();region_edge_iter++){
+		std::cout << "   Found "<<  (*region_edge_iter)->Sub_Edges.size()<<" sub-edges"<< std::endl;
+		for(int i=0;i< (*region_edge_iter)->Sub_Edges.size();i++){
+			std::cout << "      with  "<<  (*region_edge_iter)->Sub_Edges[i].Edges_in.size()<<" edges in";
+			std::cout << " and "<<  (*region_edge_iter)->Sub_Edges[i].Edges_out.size()<<" edges out"<< std::endl;
+		}
+	}
+	
 	
 	
 }
