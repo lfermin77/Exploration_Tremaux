@@ -311,8 +311,9 @@ int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_marke
 	}
 */
 //	segment_every_edge (Nodes_Map[current_node_id]->info.region_label, Tag_image);
-	segment_every_edge (Nodes_Map[current_node_id]->info.region_label, original_image);
 	segment_every_edge (-1 , original_image);
+	segment_every_edge (Nodes_Map[current_node_id]->info.region_label, original_image);
+
 
 	
 
@@ -627,6 +628,11 @@ cv::Mat RegionGraph::segment_edge (std::set<int> edge_region_index, cv::Mat  ori
 	for(int i=0; i< contours.size();i++){
 		if(contours[i].size()>10){
 			contours_cleaned.push_back(contours[i]);
+			
+			Region_Sub_Edge new_sub_edge;
+			new_sub_edge.frontier = contours[i];
+			current_region_edge->Sub_Edges.push_back(new_sub_edge);
+			
 		}
 	}
 

@@ -67,6 +67,18 @@ class Node{
 /////REGION GRAPH
 
 class Region_Node; //forward declaration
+
+//////
+class Region_Sub_Edge{
+	public:
+	std::vector<cv::Point> frontier;
+	std::vector <Edge*> Edges_in; //Refered to First Region
+	std::vector <Edge*> Edges_out;
+	
+};
+//////
+
+
 class Region_Edge{
 	public:
 	std::vector <Edge*> Edges_in_border;
@@ -77,6 +89,8 @@ class Region_Edge{
 	
 	Region_Node*  First_Region;
 	Region_Node*  Second_Region;
+	
+	std::vector<Region_Sub_Edge> Sub_Edges;
 };
 ///////////////////////////
 class Region_Node{	
@@ -90,10 +104,14 @@ class Region_Node{
 	std::vector<cv::Point> contour;
 	std::vector<Region_Edge*> connected;
 	
+	Edge* Entrance_Edge;
 	std::set< Edge*> marker_in;
 	std::set< Edge*> marker_out;
 };
 ////////////////////////////////////////////////////
+
+
+
 
 
 
