@@ -71,6 +71,7 @@ class Region_Node; //forward declaration
 //////
 class Region_Sub_Edge{
 	public:
+	std::set<int> parent_edge;
 	std::vector<cv::Point> frontier;
 	std::vector <Edge*> Edges_in; //Refered to Current Region
 	std::vector <Edge*> Edges_out;
@@ -159,7 +160,7 @@ class RegionGraph{
 	std::complex<double> Last_node_position(){return Nodes_Map[current_node_id]->info.position;};
 	std::vector<float> extract_error_per_node(std::vector<geometry_msgs::Point>  gt_nodes, float & average);
 	
-	
+	int choose_goal( geometry_msgs::PoseStamped& pose_msg );
 	
 	protected:
 	void extract_subgraph();

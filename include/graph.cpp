@@ -617,16 +617,6 @@ void RegionGraph::segment_every_edge (int region_id, cv::Mat  original_image){
 		}
 		
 	}
-
-	std::cout << "Region "<<  region_id << std::endl;
-	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_region->connected.begin(); region_edge_iter != current_region->connected.end();region_edge_iter++){
-		std::cout << "   Found "<<  (*region_edge_iter)->Sub_Edges.size()<<" sub-edges"<< std::endl;
-		for(int i=0;i< (*region_edge_iter)->Sub_Edges.size();i++){
-			std::cout << "      with  "<<  (*region_edge_iter)->Sub_Edges[i].Edges_in.size()<<" edges in";
-			std::cout << " and "<<  (*region_edge_iter)->Sub_Edges[i].Edges_out.size()<<" edges out"<< std::endl;
-		}
-	}
-	
 	
 	
 }
@@ -669,6 +659,7 @@ cv::Mat RegionGraph::segment_edge (std::set<int> edge_region_index, cv::Mat  ori
 			
 			Region_Sub_Edge new_sub_edge;
 			new_sub_edge.frontier = contours[i];
+			new_sub_edge.parent_edge = edge_region_index;
 			current_region_edge->Sub_Edges.push_back(new_sub_edge);
 			
 		}
@@ -1354,6 +1345,50 @@ Tremaux
 
 */
 
+
+int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){	
+	int region_completed = 1;
+	
+	Region_Node* current_Region = Region_Nodes_Map[ Nodes_Map[current_node_id]->info.region_label ];
+
+	
+	std::cout << "Region "<< current_Region->id   << std::endl;
+	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
+		std::cout << "   Edge ("<<  *((*region_edge_iter)->Nodes_ids.begin() ) <<" , "<< *((*region_edge_iter)->Nodes_ids.rbegin() ) <<") "<< std::endl;
+		
+		std::cout << "   Found "<<  (*region_edge_iter)->Sub_Edges.size()<<" sub-edges"<< std::endl;
+		for(int i=0;i< (*region_edge_iter)->Sub_Edges.size();i++){
+			std::cout << "      with  "<<  (*region_edge_iter)->Sub_Edges[i].Edges_in.size()<<" edges in";
+			std::cout << " and "<<  (*region_edge_iter)->Sub_Edges[i].Edges_out.size()<<" edges out"<< std::endl;
+		}
+	}
+	//*/
+	
+	// Is it fully connected?
+	if (current_Region->sub_graphs.size() > 1 ){
+		std::cout << "   Number of subgraphs  "<< current_Region->sub_graphs.size() << ", Should connect region graph  " << std::endl;
+		region_completed = -1;
+	}
+	
+	
+	std::map<float, Region_Sub_Edge> Priority_Queue;
+	
+	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
+		for(int i=0;i< (*region_edge_iter)->Sub_Edges.size();i++){
+			
+			if ( (*region_edge_iter)->Sub_Edges[i].Edges_out.size() !=0){
+				std::cout << " and "<<  (*region_edge_iter)->Sub_Edges[i].Edges_out.size()<<" edges out"<< std::endl;
+			}
+		}
+	}
+	
+	
+	
+	
+	
+	
+	return region_completed;
+}
 
 
 
