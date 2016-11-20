@@ -1370,11 +1370,12 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 		region_completed = -1;
 	}
 	
-	////////////////////////////////////////////////////
-	std::map<float, Region_Sub_Edge> Priority_Queue;
+	//////////////////////////////////////////////////// SET PRIORITIES!!
+	std::map<float, Region_Sub_Edge*> Priority_Queue;
 	
 	// Find Entrance edge
 	int edge_min_index = Edges_Map.size()-1;
+	Region_Sub_Edge* Entrance_Edge_ptr;
 	
 	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
 		for(int i=0;i< (*region_edge_iter)->Sub_Edges.size();i++){
@@ -1397,10 +1398,11 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 		Region_Edge* current_region = Region_Edges_Map[region_set];
 
 		for(int i=0;i< current_region->Sub_Edges.size();i++){
-			Region_Sub_Edge current_Sub = current_region->Sub_Edges[i];
-			for(int j=0;j < current_Sub.Edges_in.size();j++){
-				if(current_Sub.Edges_in[j]->info.label == edge_min_index ){
+			Region_Sub_Edge* current_Sub = & current_region->Sub_Edges[i];
+			for(int j=0;j < current_Sub->Edges_in.size();j++){
+				if(current_Sub->Edges_in[j]->info.label == edge_min_index ){
 					Priority_Queue[10000] =  current_Sub;
+					Entrance_Edge_ptr = current_Sub;
 //					std::cout << "Entrance Edge ( "<< *(current_Sub.parent_edge.begin() ) << " , "<< *(current_Sub.parent_edge.rbegin() ) <<" )"  << std::endl;
 				}
 			}
@@ -1408,28 +1410,49 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 		/////
 	}
 	
-	for (std::map<float, Region_Sub_Edge>::iterator top_priority_index = Priority_Queue.begin(); top_priority_index != Priority_Queue.end();top_priority_index++){
-		std::cout << "Priority "<< top_priority_index->first << " , ";	
-		std::set<int> current_set = top_priority_index->second.parent_edge;
-		std::cout << "edge ("<< *(current_set.begin()) << ","<<*(current_set.rbegin())<< ")"<< std::endl;	
-	}
-//	float priority = (*top_priority_index).first;
+
+
+
+	///////////// ENTRANCE FOUND////
 
 	
-
-	
-	
+	//Establish Priority
 	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
-		for(int i=0;i< (*region_edge_iter)->Sub_Edges.size();i++){
-			
-			if ( (*region_edge_iter)->Sub_Edges[i].Edges_out.size() ==0){
-				std::cout << " and "<<  (*region_edge_iter)->Sub_Edges[i].Edges_out.size()<<" edges out"<< std::endl;
-				float distance_edge;
+		Region_Edge* Region_Edge_ptr = *region_edge_iter;
+		for(int i=0;i< Region_Edge_ptr->Sub_Edges.size();i++){
+			Region_Sub_Edge* current_Sub = & Region_Edge_ptr->Sub_Edges[i];
+			if ( current_Sub->Edges_out.size() ==0  & (current_Sub != Entrance_Edge_ptr )){
+//				std::cout << " and "<<  current_Sub->Edges_out.size()<<" edges out"<< std::endl;
+				float distance_to_edge;
+				// find mean in the edge
+				cv::Moments mu = cv::moments(current_Sub->frontier);
+				cv::Point current_point( mu.m10/mu.m00 , mu.m01/mu.m00 );
 				
+				double x = current_point.x * image_info.resolution + image_info.origin.position.x;
+				double y = (image_info.height - current_point.y) * image_info.resolution + image_info.origin.position.y;
+		
+				std::complex<double> transformed_point(x,y);
+				
+				distance_to_edge = abs(transformed_point - Nodes_Map[current_node_id]->info.position);
+				int from = *current_Sub->parent_edge.begin();
+				int to = *current_Sub->parent_edge.rbegin();
+				if (from < 0 || to < 0){
+					distance_to_edge += 1000;
+				}
+				
+				Priority_Queue[distance_to_edge] =  current_Sub;
 			}
 		}
 	}
 	
+//*
+	for (std::map<float, Region_Sub_Edge*>::iterator top_priority_index = Priority_Queue.begin(); top_priority_index != Priority_Queue.end();top_priority_index++){
+		std::cout << "Priority "<< top_priority_index->first << " , ";	
+		std::set<int> current_set = top_priority_index->second->parent_edge;
+		std::cout << "edge ("<< *(current_set.begin()) << ","<<*(current_set.rbegin())<< ")"<< std::endl;	
+	}
+
+//*/
 	
 	
 	
