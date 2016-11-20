@@ -1351,7 +1351,7 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 	
 	Region_Node* current_Region = Region_Nodes_Map[ Nodes_Map[current_node_id]->info.region_label ];
 
-	
+	//
 	std::cout << "Region "<< current_Region->id   << std::endl;
 	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
 		std::cout << "   Edge ("<<  *((*region_edge_iter)->Nodes_ids.begin() ) <<" , "<< *((*region_edge_iter)->Nodes_ids.rbegin() ) <<") "<< std::endl;
@@ -1370,14 +1370,62 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 		region_completed = -1;
 	}
 	
-	
+	////////////////////////////////////////////////////
 	std::map<float, Region_Sub_Edge> Priority_Queue;
+	
+	// Find Entrance edge
+	int edge_min_index = Edges_Map.size()-1;
+	
+	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
+		for(int i=0;i< (*region_edge_iter)->Sub_Edges.size();i++){
+			Region_Sub_Edge current_Sub = (*region_edge_iter)->Sub_Edges[i];
+			for(int j=0;j < current_Sub.Edges_in.size();j++){
+				int edge_index = current_Sub.Edges_in[j]->info.label;
+				edge_min_index = std::min(edge_min_index, edge_index);
+			}			
+		}
+	}
+	int region_from = Edges_Map[edge_min_index]->from->info.region_label;
+	int region_to = Edges_Map[edge_min_index]->to->info.region_label;
+	
+	if(region_from == region_to){
+		std::cout << "First Region "  << std::endl;
+	}
+	else{
+//		std::cout << "Entrance Edge ( "<< region_from << " , "<< region_to <<" )"  << std::endl;
+		std::set<int> region_set = {region_from,region_to};
+		Region_Edge* current_region = Region_Edges_Map[region_set];
+
+		for(int i=0;i< current_region->Sub_Edges.size();i++){
+			Region_Sub_Edge current_Sub = current_region->Sub_Edges[i];
+			for(int j=0;j < current_Sub.Edges_in.size();j++){
+				if(current_Sub.Edges_in[j]->info.label == edge_min_index ){
+					Priority_Queue[10000] =  current_Sub;
+//					std::cout << "Entrance Edge ( "<< *(current_Sub.parent_edge.begin() ) << " , "<< *(current_Sub.parent_edge.rbegin() ) <<" )"  << std::endl;
+				}
+			}
+		}
+		/////
+	}
+	
+	for (std::map<float, Region_Sub_Edge>::iterator top_priority_index = Priority_Queue.begin(); top_priority_index != Priority_Queue.end();top_priority_index++){
+		std::cout << "Priority "<< top_priority_index->first << " , ";	
+		std::set<int> current_set = top_priority_index->second.parent_edge;
+		std::cout << "edge ("<< *(current_set.begin()) << ","<<*(current_set.rbegin())<< ")"<< std::endl;	
+	}
+//	float priority = (*top_priority_index).first;
+
+	
+
+	
 	
 	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
 		for(int i=0;i< (*region_edge_iter)->Sub_Edges.size();i++){
 			
-			if ( (*region_edge_iter)->Sub_Edges[i].Edges_out.size() !=0){
+			if ( (*region_edge_iter)->Sub_Edges[i].Edges_out.size() ==0){
 				std::cout << " and "<<  (*region_edge_iter)->Sub_Edges[i].Edges_out.size()<<" edges out"<< std::endl;
+				float distance_edge;
+				
 			}
 		}
 	}
