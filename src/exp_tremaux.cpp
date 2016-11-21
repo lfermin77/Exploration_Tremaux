@@ -8,6 +8,7 @@
 #include "geometry_msgs/PoseArray.h"
 #include "geometry_msgs/PoseStamped.h"
 
+#include <ros/package.h>
 
 //openCV
 #include <cv_bridge/cv_bridge.h>
@@ -98,10 +99,13 @@ class ROS_handler
 			time_counter = 0;
 			cum_time=0;
 			first_pose=NULL;
-			
-//			myfile.open("/home/unizar/ROS_Indigo/catkin_ws/src/Exploration_Tremaux/results/Results.txt");    //casa
-			myfile.open("/home/leonardo/ROS_Indigo/catkin_ws/src/Exploration_Tremaux/results/Results.txt");  //uni
+						
+			std::string path = ros::package::getPath("exp_tremaux");
+			path.append("/results/Results.txt");
+			myfile.open(path);  
 			myfile << "Iteration, Processing_Time, Distance, Area, LoopClosures, Current Error \n";
+
+			
 		}
 
 
