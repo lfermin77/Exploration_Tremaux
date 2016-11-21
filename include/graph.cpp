@@ -1382,13 +1382,26 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 			Region_Sub_Edge current_Sub = (*region_edge_iter)->Sub_Edges[i];
 			for(int j=0;j < current_Sub.Edges_in.size();j++){
 				int edge_index = current_Sub.Edges_in[j]->info.label;
+
+				
+				std::cout << "Edge ¡ndex "<< edge_index << std::endl;
+				int region_from = Edges_Map[edge_index]->from->info.region_label;
+				int region_to = Edges_Map[edge_index]->to->info.region_label;
+				int id_from = Edges_Map[edge_index]->from->info.label;
+				int id_to = Edges_Map[edge_index]->to->info.label;
+				std::cout << "Edge from "<< region_from<<" to " << region_to << std::endl;
+				std::cout << "Edge id from "<< id_from<<" to " << id_to << std::endl << std::endl;
+				
 				edge_min_index = std::min(edge_min_index, edge_index);
 			}			
 		}
 	}
+
+	std::cout << "Entrance Edge ¡ndex "<< edge_min_index << std::endl;
 	int region_from = Edges_Map[edge_min_index]->from->info.region_label;
 	int region_to = Edges_Map[edge_min_index]->to->info.region_label;
-	
+	std::cout << "Entrance Edge from "<< region_from<<" to " << region_to << std::endl;
+
 	if(region_from == region_to){
 		std::cout << "First Region "  << std::endl;
 	}
@@ -1403,16 +1416,14 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 				if(current_Sub->Edges_in[j]->info.label == edge_min_index ){
 					Priority_Queue[10000] =  current_Sub;
 					Entrance_Edge_ptr = current_Sub;
+					current_Sub->middle_point = current_Sub->Edges_in[j]->from->info.position;
 //					std::cout << "Entrance Edge ( "<< *(current_Sub.parent_edge.begin() ) << " , "<< *(current_Sub.parent_edge.rbegin() ) <<" )"  << std::endl;
 				}
 			}
 		}
 		/////
 	}
-	
-
-
-
+	std::cout << "Entrance Edge ( "<< *(Entrance_Edge_ptr->parent_edge.begin() ) << " , "<< *(Entrance_Edge_ptr->parent_edge.rbegin() ) <<" )"  << std::endl;
 	///////////// ENTRANCE FOUND////
 
 	
@@ -1433,6 +1444,8 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 		
 				std::complex<double> transformed_point(x,y);
 				
+				current_Sub->middle_point = transformed_point;
+			
 				distance_to_edge = abs(transformed_point - Nodes_Map[current_node_id]->info.position);
 				int from = *current_Sub->parent_edge.begin();
 				int to = *current_Sub->parent_edge.rbegin();
@@ -1449,12 +1462,14 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 	for (std::map<float, Region_Sub_Edge*>::iterator top_priority_index = Priority_Queue.begin(); top_priority_index != Priority_Queue.end();top_priority_index++){
 		std::cout << "Priority "<< top_priority_index->first << " , ";	
 		std::set<int> current_set = top_priority_index->second->parent_edge;
-		std::cout << "edge ("<< *(current_set.begin()) << ","<<*(current_set.rbegin())<< ")"<< std::endl;	
+		std::cout << "edge ("<< *(current_set.begin()) << ","<<*(current_set.rbegin())<< ")";
+		std::cout <<  " point "<< top_priority_index->second->middle_point << std::endl;	
 	}
-
-//*/
-	
-	
+	//*/
+	std::map<float, Region_Sub_Edge*>::iterator top_priority_index = Priority_Queue.begin();
+	std::complex<double> goal_position = top_priority_index->second->middle_point;
+	double angle = arg(goal_position - Nodes_Map[current_node_id]->info.position);
+	pose_msg = construct_msg(goal_position, angle);
 	
 	
 	

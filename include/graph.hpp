@@ -73,6 +73,7 @@ class Region_Sub_Edge{
 	public:
 	std::set<int> parent_edge;
 	std::vector<cv::Point> frontier;
+	std::complex<double> middle_point;
 	std::vector <Edge*> Edges_in; //Refered to Current Region
 	std::vector <Edge*> Edges_out;
 	

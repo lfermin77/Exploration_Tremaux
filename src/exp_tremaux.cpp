@@ -238,8 +238,9 @@ class ROS_handler
 //				std::cout << Tremaux_Graph;			
 
 //				time_before = clock();
-				Tremaux_Graph.choose_goal(pose_to_publish) ;  
-				int region_completed = Tremaux_Graph.Tremaux_data(pose_to_publish) ;  
+//				Tremaux_Graph.choose_goal(pose_to_publish) ;  
+//				int region_completed = Tremaux_Graph.Tremaux_data(pose_to_publish) ;  
+				int region_completed = Tremaux_Graph.choose_goal(pose_to_publish) ; ;  
 				time_after = clock();
 				time_elapsed = 1000*((float)(time_after - time_before) )/CLOCKS_PER_SEC;
 				{// RESULTS
