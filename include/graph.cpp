@@ -1381,20 +1381,27 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
 		for(int i=0;i< (*region_edge_iter)->Sub_Edges.size();i++){
 			Region_Sub_Edge current_Sub = (*region_edge_iter)->Sub_Edges[i];
-			for(int j=0;j < current_Sub.Edges_in.size();j++){
+			for(int j=0;j < current_Sub.Edges_in.size();j++){// All entrances
 				int edge_index = current_Sub.Edges_in[j]->info.label;
 				
-				std::cout << "Edge ¡ndex "<< edge_index << std::endl;
+			//	std::cout << "Edge ¡ndex "<< edge_index << std::endl;
 				int id_from = Edges_Map[edge_index]->from->info.label;
 				int id_to = Edges_Map[edge_index]->to->info.label;
-				std::cout << "Edge id from "<< id_from<<" to " << id_to << std::endl << std::endl;
 				
-				edge_min_index = std::min(edge_min_index, edge_index);
+				if(id_from+1 == id_to){	// Odometry link
+			//		std::cout << "Edge id from "<< id_from<<" to " << id_to << std::endl << std::endl;
+					if(id_from < node_min_index){// lowest id
+						node_min_index=id_from;
+						edge_min_index = edge_index;
+					}
+						
+				}
+	
 			}			
 		}
 	}
 
-	std::cout << "Entrance Edge ¡ndex "<< edge_min_index << std::endl;
+//	std::cout << "Entrance Edge ¡ndex "<< edge_min_index << std::endl;
 	int region_from = Edges_Map[edge_min_index]->from->info.region_label;
 	int region_to = Edges_Map[edge_min_index]->to->info.region_label;
 	std::cout << "Entrance Edge from "<< region_from<<" to " << region_to << std::endl;
@@ -1460,8 +1467,9 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 		std::cout << "Priority "<< top_priority_index->first << " , ";	
 		std::set<int> current_set = top_priority_index->second->parent_edge;
 		std::cout << "edge ("<< *(current_set.begin()) << ","<<*(current_set.rbegin())<< ")";
-		std::cout <<  " point "<< top_priority_index->second->middle_point << std::endl;	
+		std::cout <<  " point "<< top_priority_index->second->middle_point;	
 	}
+	std::cout << std::endl;
 	//*/
 	std::map<float, Region_Sub_Edge*>::iterator top_priority_index = Priority_Queue.begin();
 	std::complex<double> goal_position = top_priority_index->second->middle_point;
