@@ -1351,7 +1351,7 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 	
 	Region_Node* current_Region = Region_Nodes_Map[ Nodes_Map[current_node_id]->info.region_label ];
 
-	//
+	//*
 	std::cout << "Region "<< current_Region->id   << std::endl;
 	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
 		std::cout << "   Edge ("<<  *((*region_edge_iter)->Nodes_ids.begin() ) <<" , "<< *((*region_edge_iter)->Nodes_ids.rbegin() ) <<") "<< std::endl;
@@ -1375,6 +1375,7 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 	
 	// Find Entrance edge
 	int edge_min_index = Edges_Map.size()-1;
+	int node_min_index = current_node_id;
 	Region_Sub_Edge* Entrance_Edge_ptr;
 	
 	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
@@ -1382,14 +1383,10 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 			Region_Sub_Edge current_Sub = (*region_edge_iter)->Sub_Edges[i];
 			for(int j=0;j < current_Sub.Edges_in.size();j++){
 				int edge_index = current_Sub.Edges_in[j]->info.label;
-
 				
 				std::cout << "Edge ¡ndex "<< edge_index << std::endl;
-				int region_from = Edges_Map[edge_index]->from->info.region_label;
-				int region_to = Edges_Map[edge_index]->to->info.region_label;
 				int id_from = Edges_Map[edge_index]->from->info.label;
 				int id_to = Edges_Map[edge_index]->to->info.label;
-				std::cout << "Edge from "<< region_from<<" to " << region_to << std::endl;
 				std::cout << "Edge id from "<< id_from<<" to " << id_to << std::endl << std::endl;
 				
 				edge_min_index = std::min(edge_min_index, edge_index);
@@ -1417,13 +1414,13 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 					Priority_Queue[10000] =  current_Sub;
 					Entrance_Edge_ptr = current_Sub;
 					current_Sub->middle_point = current_Sub->Edges_in[j]->from->info.position;
-//					std::cout << "Entrance Edge ( "<< *(current_Sub.parent_edge.begin() ) << " , "<< *(current_Sub.parent_edge.rbegin() ) <<" )"  << std::endl;
+					std::cout << "Entrance Edge ( "<< *(current_Sub->parent_edge.begin() ) << " , "<< *(current_Sub->parent_edge.rbegin() ) <<" )"  << std::endl;
 				}
 			}
 		}
 		/////
 	}
-	std::cout << "Entrance Edge ( "<< *(Entrance_Edge_ptr->parent_edge.begin() ) << " , "<< *(Entrance_Edge_ptr->parent_edge.rbegin() ) <<" )"  << std::endl;
+//	std::cout << "Entrance Edge ( "<< *(Entrance_Edge_ptr->parent_edge.begin() ) << " , "<< *(Entrance_Edge_ptr->parent_edge.rbegin() ) <<" )"  << std::endl;
 	///////////// ENTRANCE FOUND////
 
 	
