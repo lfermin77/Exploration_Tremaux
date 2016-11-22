@@ -1351,7 +1351,7 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 	
 	Region_Node* current_Region = Region_Nodes_Map[ Nodes_Map[current_node_id]->info.region_label ];
 
-	//*
+	//* Print Edges
 	std::cout << "Region "<< current_Region->id   << std::endl;
 	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
 		std::cout << "   Edge ("<<  *((*region_edge_iter)->Nodes_ids.begin() ) <<" , "<< *((*region_edge_iter)->Nodes_ids.rbegin() ) <<") "<< std::endl;
@@ -1368,6 +1368,12 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 	if (current_Region->sub_graphs.size() > 1 ){
 		std::cout << "   Number of subgraphs  "<< current_Region->sub_graphs.size() << ", Should connect region graph  " << std::endl;
 		region_completed = -1;
+		/*
+		if ( connect_inside_region(pose_msg) == -1 ){
+			std::cout << "   publish connection  "<< std::endl;
+		}
+		//*/
+		return region_completed;		
 	}
 	
 	//////////////////////////////////////////////////// SET PRIORITIES!!
@@ -1404,7 +1410,7 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 //	std::cout << "Entrance Edge ¡ndex "<< edge_min_index << std::endl;
 	int region_from = Edges_Map[edge_min_index]->from->info.region_label;
 	int region_to = Edges_Map[edge_min_index]->to->info.region_label;
-	std::cout << "Entrance Edge from "<< region_from<<" to " << region_to << std::endl;
+//	std::cout << "Entrance Edge from "<< region_from<<" to " << region_to << std::endl;
 
 	if(region_from == region_to){
 		std::cout << "First Region "  << std::endl;
@@ -1467,7 +1473,7 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 		std::cout << "Priority "<< top_priority_index->first << " , ";	
 		std::set<int> current_set = top_priority_index->second->parent_edge;
 		std::cout << "edge ("<< *(current_set.begin()) << ","<<*(current_set.rbegin())<< ")";
-		std::cout <<  " point "<< top_priority_index->second->middle_point;	
+//		std::cout <<  " point "<< top_priority_index->second->middle_point;	
 	}
 	std::cout << std::endl;
 	//*/
