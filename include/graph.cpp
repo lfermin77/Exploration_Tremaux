@@ -1372,9 +1372,10 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 		//*
 		if ( connect_inside_region(pose_msg) != -1 ){
 			std::cout << "   publish connection  "<< std::endl;
+					return region_completed;		
 		}
 		//*/
-		return region_completed;		
+
 	}
 	
 	//////////////////////////////////////////////////// SET PRIORITIES!!
