@@ -1136,6 +1136,7 @@ int RegionGraph::connect_inside_region( geometry_msgs::PoseStamped& pose_msg ){
 	int region_number=0;
 	int current_subgraph = Nodes_Map[current_node_id]->info.sub_region;
 //	std::complex<double> first_position;// = Nodes_Map[current_node_id]->info.position;
+	std::cout << " Current sub-graph " << current_subgraph << std::endl;		
 	
 	// Find current subgraph iterator
 	std::list <Node*>  current_list;
@@ -1162,7 +1163,7 @@ int RegionGraph::connect_inside_region( geometry_msgs::PoseStamped& pose_msg ){
 		int current_sub_region = (*( (*graph_list_iter).begin() ))->info.sub_region;
 	
 		if( current_sub_region != current_subgraph){
-//			std::cout << "   analizing sub region " <<  current_sub_region  ;
+			std::cout << "   analizing sub region " <<  current_sub_region  ;
 
 			// Calculate minimum
 			float min_subgraph_distance = std::numeric_limits<float>::infinity();			
@@ -1183,19 +1184,19 @@ int RegionGraph::connect_inside_region( geometry_msgs::PoseStamped& pose_msg ){
 			}
 
 			if (min_subgraph_distance < distance_threshold){
-//				std::cout << ", Considered connected "  << std::endl;			
+				std::cout << ", Considered connected "  << std::endl;			
 			}
 			else{
 				min_dist_mapper[current_sub_region] = min_subgraph_distance;
 				min_Node_mapper[current_sub_region] = current_Node_min;
-//				std::cout << ", with distance: " <<  min_subgraph_distance  << std::endl;
+				std::cout << ", with distance: " <<  min_subgraph_distance  << std::endl;
 			}
 			
 		}
 	}		
 
 	if(min_dist_mapper.size() == 0){
-		std::cout << "   region considered connected " <<  std::endl;
+		std::cout << "   Whole region considered connected " <<  std::endl;
 		status = -1;
 	}
 	else{
@@ -1368,8 +1369,8 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 	if (current_Region->sub_graphs.size() > 1 ){
 		std::cout << "   Number of subgraphs  "<< current_Region->sub_graphs.size() << ", Should connect region graph  " << std::endl;
 		region_completed = -1;
-		/*
-		if ( connect_inside_region(pose_msg) == -1 ){
+		//*
+		if ( connect_inside_region(pose_msg) != -1 ){
 			std::cout << "   publish connection  "<< std::endl;
 		}
 		//*/
