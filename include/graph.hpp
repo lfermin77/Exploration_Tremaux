@@ -155,6 +155,7 @@ class RegionGraph{
 
 	int Tremaux_data( geometry_msgs::PoseStamped& pose_msg );
 	int connect_inside_region( geometry_msgs::PoseStamped& pose_msg );
+	int connect_inside_region_closer( geometry_msgs::PoseStamped& pose_msg );
 	int connect_inside_region_greedy( geometry_msgs::PoseStamped& pose_msg );
 
 	int number_loop_closures();
