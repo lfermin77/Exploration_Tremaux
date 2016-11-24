@@ -1552,10 +1552,15 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 			Region_Sub_Edge* current_Sub = & current_region->Sub_Edges[i];
 			for(int j=0;j < current_Sub->Edges_in.size();j++){
 				if(current_Sub->Edges_in[j]->info.label == edge_min_index ){
-					Priority_Queue[10000] =  current_Sub;
-					Entrance_Edge_ptr = current_Sub;
-					current_Sub->middle_point = current_Sub->Edges_in[j]->from->info.position;
-					std::cout << "Entrance Edge ( "<< *(current_Sub->parent_edge.begin() ) << " , "<< *(current_Sub->parent_edge.rbegin() ) <<" )"  << std::endl;
+					if ( current_Sub->Edges_out.size() != 0){
+						std::cout << "Exploration should be over "<< std::endl;
+					}
+					else{
+						Priority_Queue[10000] =  current_Sub;
+						Entrance_Edge_ptr = current_Sub;
+						current_Sub->middle_point = current_Sub->Edges_in[j]->from->info.position;
+						std::cout << "Entrance Edge ( "<< *(current_Sub->parent_edge.begin() ) << " , "<< *(current_Sub->parent_edge.rbegin() ) <<" )"  << std::endl;
+					}
 				}
 			}
 		}
@@ -1606,11 +1611,12 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 	}
 	//*/
 
-
-	std::map<float, Region_Sub_Edge*>::iterator top_priority_index = Priority_Queue.begin();
-	std::complex<double> goal_position = top_priority_index->second->middle_point;
-	double angle = arg(goal_position - Nodes_Map[current_node_id]->info.position);
-	pose_msg = construct_msg(goal_position, angle);
+	if(Priority_Queue.size() > 0){
+		std::map<float, Region_Sub_Edge*>::iterator top_priority_index = Priority_Queue.begin();
+		std::complex<double> goal_position = top_priority_index->second->middle_point;
+		double angle = arg(goal_position - Nodes_Map[current_node_id]->info.position);
+		pose_msg = construct_msg(goal_position, angle);
+	}
 	
 	
 	
