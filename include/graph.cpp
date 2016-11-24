@@ -1306,16 +1306,21 @@ int RegionGraph::connect_inside_region_closer( geometry_msgs::PoseStamped& pose_
 		status = -1;
 	}
 	else{
+		/*
+		std::cout << "   Sub-graphs NOT connected " <<  std::endl;
 		for(std::map <int, Node*>::iterator map_iter = min_Node_mapper.begin(); map_iter != min_Node_mapper.end(); map_iter++  ){
-			int a=1;
+			int sub_graph = map_iter->first;
+			std::cout << "     number: " << sub_graph  << std::endl;
 		}
-		
+		std::cout << "   and current is "<< current_subgraph <<  std::endl;
+		//*/		
 		Node* closer_node = NULL;
 		float min_distance = std::numeric_limits<float>::infinity();
 		for(std::list <Node*>::iterator node_iter = current_Region->nodes_inside.begin(); node_iter != current_Region->nodes_inside.end(); node_iter++){
 			Node* current_node = *node_iter;
+			std::map <int, Node*>::iterator disconnected_iter = min_Node_mapper.find(current_node->info.sub_region);
 			
-			if(current_node->info.sub_region != current_subgraph){
+			if( disconnected_iter != min_Node_mapper.end() ){
 				float distance = abs( current_node->info.position - current_position );
 				if (distance < min_distance){
 					min_distance = distance;
