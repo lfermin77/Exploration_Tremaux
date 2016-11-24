@@ -1555,12 +1555,11 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 					if ( current_Sub->Edges_out.size() != 0){
 						std::cout << "Exploration should be over "<< std::endl;
 					}
-					else{
-						Priority_Queue[10000] =  current_Sub;
-						Entrance_Edge_ptr = current_Sub;
-						current_Sub->middle_point = current_Sub->Edges_in[j]->from->info.position;
-						std::cout << "Entrance Edge ( "<< *(current_Sub->parent_edge.begin() ) << " , "<< *(current_Sub->parent_edge.rbegin() ) <<" )"  << std::endl;
-					}
+					Priority_Queue[10000] =  current_Sub;
+					Entrance_Edge_ptr = current_Sub;
+					current_Sub->middle_point = current_Sub->Edges_in[j]->from->info.position;
+					std::cout << "Entrance Edge ( "<< *(current_Sub->parent_edge.begin() ) << " , "<< *(current_Sub->parent_edge.rbegin() ) <<" )"  << std::endl;
+
 				}
 			}
 		}
