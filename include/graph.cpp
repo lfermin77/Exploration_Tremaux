@@ -1243,15 +1243,17 @@ int RegionGraph::connect_inside_region_closer( geometry_msgs::PoseStamped& pose_
 	std::cout << " Trying to connect inside" << std::endl;		
 	Region_Node* current_Region = Region_Nodes_Map[  Nodes_Map[current_node_id]->info.region_label   ];
 	
-	float min_distance = std::numeric_limits<float>::infinity();
 	
 	std::list < std::list <Node*> > subGraphs = current_Region->sub_graphs;
-	int region_number=0;
 	int current_subgraph = Nodes_Map[current_node_id]->info.sub_region;
-//	std::complex<double> first_position;// = Nodes_Map[current_node_id]->info.position;
-	std::cout << " Current sub-graph " << current_subgraph << std::endl;		
 	
-	// Find current subgraph iterator
+	float current_angle=0;
+	std::complex<double> node_position;
+	std::complex<double> current_position = Nodes_Map[current_node_id]->info.position;
+	
+	
+ // ANALIZE CURRENT GRAPH
+	// Find current list
 	std::list <Node*>  current_list;
 	for(std::list < std::list <Node*> >::iterator graph_list_iter = current_Region->sub_graphs.begin(); graph_list_iter != current_Region->sub_graphs.end(); graph_list_iter ++){
 		int current_sub_region = (*( (*graph_list_iter).begin() ))->info.sub_region;
@@ -1260,28 +1262,19 @@ int RegionGraph::connect_inside_region_closer( geometry_msgs::PoseStamped& pose_
 			break;
 		}
 	}
-	//////
-
+	////
 	std::map <int, float> min_dist_mapper;
 	std::map <int, Node*> min_Node_mapper;
-
-/*
-	// Compare current region with the regions
-	for(std::list <Node*>::iterator node_iter = current_list.begin(); node_iter != current_list.end(); node_iter++){
-		std::complex<double> first_position = (*node_iter)->info.position;
-	}
-	*/
-	
 	for(std::list < std::list <Node*> >::iterator graph_list_iter = current_Region->sub_graphs.begin(); graph_list_iter != current_Region->sub_graphs.end(); graph_list_iter ++){
 		int current_sub_region = (*( (*graph_list_iter).begin() ))->info.sub_region;
 	
 		if( current_sub_region != current_subgraph){
 			std::cout << "   analizing sub region " <<  current_sub_region  ;
-
+	
 			// Calculate minimum
 			float min_subgraph_distance = std::numeric_limits<float>::infinity();			
 			Node* current_Node_min = *( (*graph_list_iter).begin() );
-
+	
 			for(std::list <Node*>::iterator node_iter = current_list.begin(); node_iter != current_list.end(); node_iter++){
 				std::complex<double> first_position = (*node_iter)->info.position;			
 				
@@ -1295,7 +1288,7 @@ int RegionGraph::connect_inside_region_closer( geometry_msgs::PoseStamped& pose_
 					}				
 				}
 			}
-
+	
 			if (min_subgraph_distance < distance_threshold){
 				std::cout << ", Considered connected "  << std::endl;			
 			}
@@ -1307,43 +1300,58 @@ int RegionGraph::connect_inside_region_closer( geometry_msgs::PoseStamped& pose_
 			
 		}
 	}		
-
+	////////////////////////
 	if(min_dist_mapper.size() == 0){
 		std::cout << "   Whole region considered connected " <<  std::endl;
 		status = -1;
 	}
 	else{
-		// Calculate minimum
-		float min_subgraph_distance = std::numeric_limits<float>::infinity();			
-		int min_index;
+		for(std::map <int, Node*>::iterator map_iter = min_Node_mapper.begin(); map_iter != min_Node_mapper.end(); map_iter++  ){
+			int a=1;
+		}
 		
-		for( std::map <int, float>::iterator map_iter = min_dist_mapper.begin(); map_iter != min_dist_mapper.end();map_iter++){
-			if( (*map_iter).second < min_subgraph_distance){
-				min_index = (*map_iter).first;
-				min_subgraph_distance = (*map_iter).second;
+		Node* closer_node = NULL;
+		float min_distance = std::numeric_limits<float>::infinity();
+		for(std::list <Node*>::iterator node_iter = current_Region->nodes_inside.begin(); node_iter != current_Region->nodes_inside.end(); node_iter++){
+			Node* current_node = *node_iter;
+			
+			if(current_node->info.sub_region != current_subgraph){
+				float distance = abs( current_node->info.position - current_position );
+				if (distance < min_distance){
+					min_distance = distance;
+					closer_node = current_node;
+				}
 			}
 		}
-
-		{
-			double current_angle ;		
-			Node* node_to_explore = min_Node_mapper[min_index];
-			std::complex<double> node_position = node_to_explore->info.position;
-	
-			if (node_to_explore->info.label != 0 ){
-				Node* previous_node = Nodes_Map[node_to_explore->info.label -1 ];
-				current_angle = arg(node_position  -  previous_node->info.position );
-			}
-			else{// initial node 
-				current_angle=0;
-			}
-			pose_msg = construct_msg(node_position,  current_angle) ;
+		/////
+		node_position = closer_node->info.position;
+		if (closer_node->info.label != 0 ){
+			Node* previous_node = Nodes_Map[closer_node->info.label -1 ];
+			current_angle = arg(node_position  -  previous_node->info.position );
 		}
-
-		
-		
+		else{// initial node 
+			current_angle=0;
+		}
+		pose_msg = construct_msg(node_position,  current_angle) ;
 	}
-	
-	
+	/*
+	if(closer_node != NULL || min_distance > distance_threshold){
+		node_position = closer_node->info.position;
+		if (closer_node->info.label != 0 ){
+			Node* previous_node = Nodes_Map[closer_node->info.label -1 ];
+			current_angle = arg(node_position  -  previous_node->info.position );
+		}
+		else{// initial node 
+			current_angle=0;
+		}
+		pose_msg = construct_msg(node_position,  current_angle) ;
+	}
+	else{
+		status=-1;
+		std::cout << " Map considered connected" << std::endl;	
+	}
+	* */
+
 	////////
 	return status;
 }
@@ -1591,8 +1599,9 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 //		std::cout <<  " point "<< top_priority_index->second->middle_point;	
 		std::cout << std::endl;
 	}
-
 	//*/
+
+
 	std::map<float, Region_Sub_Edge*>::iterator top_priority_index = Priority_Queue.begin();
 	std::complex<double> goal_position = top_priority_index->second->middle_point;
 	double angle = arg(goal_position - Nodes_Map[current_node_id]->info.position);
