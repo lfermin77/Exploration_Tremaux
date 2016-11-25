@@ -270,7 +270,7 @@ class ROS_handler
 				}
 
 
-				/*
+				//*
 				if (region_completed < 0  & Last_goal.header.seq != -1){
 //					Tremaux_Graph.connect_inside_region(pose_to_publish);
 

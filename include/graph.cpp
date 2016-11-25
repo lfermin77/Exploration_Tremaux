@@ -1313,8 +1313,10 @@ int RegionGraph::connect_inside_region_closer( geometry_msgs::PoseStamped& pose_
 			std::cout << "     number: " << sub_graph  << std::endl;
 		}
 		std::cout << "   and current is "<< current_subgraph <<  std::endl;
-		//*/		
+		//*/	
+			
 		Node* closer_node = NULL;
+		/*
 		float min_distance = std::numeric_limits<float>::infinity();
 		for(std::list <Node*>::iterator node_iter = current_Region->nodes_inside.begin(); node_iter != current_Region->nodes_inside.end(); node_iter++){
 			Node* current_node = *node_iter;
@@ -1328,7 +1330,10 @@ int RegionGraph::connect_inside_region_closer( geometry_msgs::PoseStamped& pose_
 				}
 			}
 		}
+		//*/
 		/////
+		closer_node = current_Region->Node_Center;
+		
 		node_position = closer_node->info.position;
 		if (closer_node->info.label != 0 ){
 			Node* previous_node = Nodes_Map[closer_node->info.label -1 ];
