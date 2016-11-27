@@ -1483,7 +1483,7 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 	
 	Region_Node* current_Region = Region_Nodes_Map[ Nodes_Map[current_node_id]->info.region_label ];
 
-	//* Print Edges
+	/* Print Edges
 	std::cout << "Region "<< current_Region->id   << std::endl;
 	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
 		std::cout << "   Edge ("<<  *((*region_edge_iter)->Nodes_ids.begin() ) <<" , "<< *((*region_edge_iter)->Nodes_ids.rbegin() ) <<") "<< std::endl;
@@ -1500,7 +1500,7 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 	if (current_Region->sub_graphs.size() > 1 ){
 		std::cout << "   Number of subgraphs  "<< current_Region->sub_graphs.size() << ", Should connect region graph  " << std::endl;
 		region_completed = -1;
-		//*
+		/*
 		if ( connect_inside_region_closer(pose_msg) != -1 ){
 			std::cout << "   Region NOT connected  "<< std::endl;
 			return region_completed;		
@@ -1618,8 +1618,53 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 	if(Priority_Queue.size() > 0){
 		std::map<float, Region_Sub_Edge*>::iterator top_priority_index = Priority_Queue.begin();
 		std::complex<double> goal_position = top_priority_index->second->middle_point;
-		double angle = arg(goal_position - Nodes_Map[current_node_id]->info.position);
-		pose_msg = construct_msg(goal_position, angle);
+		std::complex<double> difference = goal_position - Nodes_Map[current_node_id]->info.position;
+		//////
+		Region_Edge* pointing_edge = Region_Edges_Map[top_priority_index->second->parent_edge];
+		Region_Node* other_region;
+		float current_angle=0;
+		if(current_Region == pointing_edge->First_Region){
+			other_region = pointing_edge->Second_Region;
+		}
+		else{
+			other_region = pointing_edge->First_Region;
+		}
+		std::cout << "Going from region "<< current_Region->id << " to "<< other_region->id << std::endl;
+		/////////					
+		if ( abs( difference ) > 0.05 || other_region->id == -1){
+			pose_msg = construct_msg(goal_position, std::arg(difference));
+			std::cout << "Choosing edge "<< std::endl;
+		}
+		else{
+			std::cout << "Choosing node "<< std::endl;
+			std::complex<double> node_position;
+			if(other_region->nodes_inside.size() > 1){
+				Node* closer_node = other_region->Node_Center;			
+				node_position = closer_node->info.position;
+				if (closer_node->info.label != 0 ){
+					Node* previous_node = Nodes_Map[closer_node->info.label -1 ];
+					current_angle = std::arg(node_position  -  previous_node->info.position );
+				}
+				std::cout << "Choosing center in region "<< std::endl;
+			}
+			else{//choose geometric center
+				std::complex<double> cum_position(0,0);
+				for(int j=0; j < other_region-> contour.size(); j++){
+					cv::Point current_point = other_region-> contour[j];
+					double x = current_point.x * image_info.resolution + image_info.origin.position.x;
+					double y = (image_info.height - current_point.y) * image_info.resolution + image_info.origin.position.y;
+			
+					std::complex<double> transformed_point(x,y);
+					cum_position += transformed_point;
+				}
+				cum_position /= (double)other_region-> contour.size();
+				current_angle = arg(cum_position - Nodes_Map[current_node_id]->info.position  );							
+				node_position = cum_position;
+				std::cout << "Choosing geometric center "<< std::endl;
+			}
+			
+			pose_msg = construct_msg(node_position,  current_angle) ;
+		}
 	}
 	
 	

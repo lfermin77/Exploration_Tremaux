@@ -270,8 +270,14 @@ class ROS_handler
 				}
 
 
+				geometry_msgs::PoseStamped center_goal; 
+				int is_connected = Tremaux_Graph.connect_inside_region_closer(center_goal);
+				center_goal.header.seq = -1;
+				
+				
 				//*
 				if (region_completed < 0  & Last_goal.header.seq != -1){
+//				if (is_connected > 0  & Last_goal.header.seq != -1){
 //					Tremaux_Graph.connect_inside_region(pose_to_publish);
 
 					float difference_x = Last_goal.pose.position.x - Last_node.x;
