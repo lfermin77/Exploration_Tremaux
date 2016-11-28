@@ -144,18 +144,16 @@ class ROS_handler
 			
 			distance += delta_distance;
 			// UNSTUCK
-			{
-
-				
+			{			
 				if( delta_distance  < 0.05){
 					counter++;
-		//			std::cout << "Counter is " << counter << std::endl;
 				}
 				else{
 					counter=0;
 				}
 				
-				if(counter > 20){
+//				if(counter > 20){
+				if(false){
 					geometry_msgs::PoseStamped pose_out;
 					pose_out.pose.orientation = msg.poses.front().orientation;
 					double angle = 2*atan2(pose_out.pose.orientation.z, pose_out.pose.orientation.w);
@@ -198,7 +196,8 @@ class ROS_handler
 //////////////
 		void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 		{
-			std::cout << "New Image"<< std::endl;
+			std::cout << "... ";
+			
 			cv_bridge::CvImagePtr temporal_ptr;
 
 			try
@@ -224,7 +223,8 @@ class ROS_handler
 
 			if(data_ready){
 				cv::Mat occupancy_image = image_map.clone();
-				
+				std::cout << std::endl;
+//				std::cout << "\033[2J\033[1;1H";				// clean whole console
 
 
 				RegionGraph Tremaux_Graph;
@@ -240,7 +240,13 @@ class ROS_handler
 //				time_before = clock();
 //				Tremaux_Graph.choose_goal(pose_to_publish) ;  
 //				int region_completed = Tremaux_Graph.Tremaux_data(pose_to_publish) ;  
-				int region_completed = Tremaux_Graph.choose_goal(pose_to_publish) ; ;  
+
+				geometry_msgs::PoseStamped center_goal; 
+				Tremaux_Graph.check_if_old_goal_is_in_current_sub_graph(center_goal);
+				int is_connected = Tremaux_Graph.connect_inside_region_closer(center_goal);
+
+				
+				int region_completed = Tremaux_Graph.choose_goal(pose_to_publish) ;  
 				time_after = clock();
 				time_elapsed = 1000*((float)(time_after - time_before) )/CLOCKS_PER_SEC;
 				{// RESULTS
@@ -270,14 +276,13 @@ class ROS_handler
 				}
 
 
-				geometry_msgs::PoseStamped center_goal; 
-				int is_connected = Tremaux_Graph.connect_inside_region_closer(center_goal);
-				center_goal.header.seq = -1;
+
+
 				
 				
 				//*
-				if (region_completed < 0  & Last_goal.header.seq != -1){
-//				if (is_connected > 0  & Last_goal.header.seq != -1){
+				if (region_completed < 0  && Last_goal.header.seq != -1){ //return to center of region
+//				if (is_connected > 0  && Last_goal.header.seq != -1){ // return till connected
 //					Tremaux_Graph.connect_inside_region(pose_to_publish);
 
 					float difference_x = Last_goal.pose.position.x - Last_node.x;

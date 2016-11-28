@@ -334,8 +334,10 @@ void RegionGraph::extract_subgraph(){
 					Nodes_in_sub_Region.push_back(*it);
 				}
 			}
-			sub_region++;
+
 			(*Region_iter).second->sub_graphs.push_back(Nodes_in_sub_Region);
+			(*Region_iter).second->sub_graphs_map[sub_region]= Nodes_in_sub_Region;
+			sub_region++;
 		}
 		////		
 	}
@@ -1460,7 +1462,21 @@ int RegionGraph::connect_inside_region_greedy( geometry_msgs::PoseStamped& pose_
 	return status;
 }
 
+int RegionGraph::check_if_old_goal_is_in_current_sub_graph(geometry_msgs::PoseStamped& pose_msg ){
+	int status = -1; //it is not here
+	Region_Node* current_Region = Region_Nodes_Map[ Nodes_Map[current_node_id]->info.region_label ];
 
+	std::cout << "sub-graphs " << std::endl;	
+	for(std::map <int, std::list <Node*> > ::iterator sub_map_iter = current_Region->sub_graphs_map.begin(); sub_map_iter != current_Region->sub_graphs_map.end(); sub_map_iter++){
+		int value_in_map = sub_map_iter->first;
+//		std::list <Node*>  pepe = sub_map_iter->second;
+		Node*  first_node = *(sub_map_iter->second.begin() );
+		int value_inside = first_node->info.sub_region;
+		std::cout << "value_in_map " << value_in_map<< ", value_inside "<< value_inside << std::endl;
+	}
+	
+	return status;
+}
 
 /*
 Tremaux
@@ -1614,7 +1630,9 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 		std::cout << std::endl;
 	}
 	//*/
-
+	
+	float edge_node_threshold = 0.50;
+	
 	if(Priority_Queue.size() > 0){
 		std::map<float, Region_Sub_Edge*>::iterator top_priority_index = Priority_Queue.begin();
 		std::complex<double> goal_position = top_priority_index->second->middle_point;
@@ -1631,9 +1649,15 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 		}
 		std::cout << "Going from region "<< current_Region->id << " to "<< other_region->id << std::endl;
 		/////////					
-		if ( abs( difference ) > 0.05 || other_region->id == -1){
+		if ( abs( difference ) > edge_node_threshold || other_region->id == -1){
 			pose_msg = construct_msg(goal_position, std::arg(difference));
-			std::cout << "Choosing edge "<< std::endl;
+			if(other_region->id == -1){
+				std::cout << "Choosing frontier "<< std::endl;
+			}
+			else{
+				std::cout << "Choosing edge "<< std::endl;
+			}
+			
 		}
 		else{
 			std::cout << "Choosing node "<< std::endl;
