@@ -164,7 +164,7 @@ class RegionGraph{
 	std::vector<float> extract_error_per_node(std::vector<geometry_msgs::Point>  gt_nodes, float & average);
 	
 	int choose_goal( geometry_msgs::PoseStamped& pose_msg );
-	int check_if_old_goal_is_in_current_sub_graph(geometry_msgs::PoseStamped& pose_msg );
+	int check_if_old_goal_is_in_current_sub_graph(geometry_msgs::PoseStamped pose_msg );
 	
 	
 	

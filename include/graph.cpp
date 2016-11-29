@@ -1462,18 +1462,34 @@ int RegionGraph::connect_inside_region_greedy( geometry_msgs::PoseStamped& pose_
 	return status;
 }
 
-int RegionGraph::check_if_old_goal_is_in_current_sub_graph(geometry_msgs::PoseStamped& pose_msg ){
+int RegionGraph::check_if_old_goal_is_in_current_sub_graph(geometry_msgs::PoseStamped last_goal ){
 	int status = -1; //it is not here
 	Region_Node* current_Region = Region_Nodes_Map[ Nodes_Map[current_node_id]->info.region_label ];
 
+	int current_sub_graph = Nodes_Map[current_node_id]->info.sub_region;
+	std::list <Node*> nodes_in_current_subgraph = current_Region->sub_graphs_map[current_sub_graph];
+	
+
+	std::complex<double> goal_complex(last_goal.pose.position.x, last_goal.pose.position.y);
+	
+	for( std::list <Node*>::iterator sub_graph_iter =  nodes_in_current_subgraph.begin(); sub_graph_iter !=  nodes_in_current_subgraph.end(); sub_graph_iter++  ){
+		Node* this_node = *sub_graph_iter;
+		std::complex<double> difference = goal_complex - this_node->info.position;
+		if (abs(difference) < 0.01){
+			status=1;
+			break;
+		}
+	}
+
+	/*
 	std::cout << "sub-graphs " << std::endl;	
 	for(std::map <int, std::list <Node*> > ::iterator sub_map_iter = current_Region->sub_graphs_map.begin(); sub_map_iter != current_Region->sub_graphs_map.end(); sub_map_iter++){
 		int value_in_map = sub_map_iter->first;
-//		std::list <Node*>  pepe = sub_map_iter->second;
 		Node*  first_node = *(sub_map_iter->second.begin() );
 		int value_inside = first_node->info.sub_region;
 		std::cout << "value_in_map " << value_in_map<< ", value_inside "<< value_inside << std::endl;
 	}
+	//*/
 	
 	return status;
 }
@@ -1631,7 +1647,7 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 	}
 	//*/
 	
-	float edge_node_threshold = 0.50;
+	float edge_node_threshold = 1.00;
 	
 	if(Priority_Queue.size() > 0){
 		std::map<float, Region_Sub_Edge*>::iterator top_priority_index = Priority_Queue.begin();
