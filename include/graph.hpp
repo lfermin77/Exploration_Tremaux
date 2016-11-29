@@ -165,7 +165,7 @@ class RegionGraph{
 	
 	int choose_goal( geometry_msgs::PoseStamped& pose_msg );
 	int check_if_old_goal_is_in_current_sub_graph(geometry_msgs::PoseStamped pose_msg );
-	
+	int check_if_center_is_in_current_sub_graph();
 	
 	
 	

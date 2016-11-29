@@ -316,6 +316,7 @@ class ROS_handler
 				
 				//*
 				if(trying_to_connect){
+					int last_goal_reached = Tremaux_Graph.check_if_old_goal_is_in_current_sub_graph(Last_goal);
 					if (last_goal_reached > 0){
 						trying_to_connect = false;
 						publish_goal(pose_to_publish);						
@@ -326,8 +327,9 @@ class ROS_handler
 					}
 					////
 				}
-				else{
-					if(last_goal_reached < 0){ // CHECK IF THE RIGHT FUNCTION
+				else{ // NOT connecting
+					int is_center_connected = Tremaux_Graph.check_if_center_is_in_current_sub_graph();
+					if(is_center_connected < 0){ // CHECK IF THE RIGHT FUNCTION
 						publish_goal(center_goal);
 						trying_to_connect= true;
 					}
