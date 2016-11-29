@@ -316,25 +316,33 @@ class ROS_handler
 				
 				//*
 				if(trying_to_connect){
+					std::cout << "Trying_to_connect "<< std::endl;
 					int last_goal_reached = Tremaux_Graph.check_if_old_goal_is_in_current_sub_graph(Last_goal);
 					if (last_goal_reached > 0){
+						std::cout << "last_goal_reached "<< std::endl;
 						trying_to_connect = false;
 						publish_goal(pose_to_publish);						
 						Last_goal.pose = pose_to_publish.pose;
 					}
 					else{
 						// do nothing, keep on connecting
+						std::cout << "keep on connecting "<< std::endl;
 					}
 					////
 				}
 				else{ // NOT connecting
+					std::cout << "not connecting "<< std::endl;
 					int is_center_connected = Tremaux_Graph.check_if_center_is_in_current_sub_graph();
 					if(is_center_connected < 0){ // CHECK IF THE RIGHT FUNCTION
+						center_goal = Tremaux_Graph.region_center();
 						publish_goal(center_goal);
 						trying_to_connect= true;
+						std::cout << "will try to connect "<< std::endl;
+						Last_goal.pose = pose_to_publish.pose;
 					}
 					else{
 						publish_goal(pose_to_publish);
+						std::cout << "regular exploring "<< std::endl;
 					}						
 				}
 				//*/

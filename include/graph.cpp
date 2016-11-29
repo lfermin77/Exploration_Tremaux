@@ -1125,6 +1125,20 @@ int RegionGraph::Tremaux_data( geometry_msgs::PoseStamped& pose_msg ){
 
 
 
+
+geometry_msgs::PoseStamped RegionGraph::region_center(){
+	Node* center_node = Region_Nodes_Map[ Nodes_Map[current_node_id]->info.region_label ]->Node_Center; 
+	double angle=0;
+	std::complex<double> node_position = center_node->info.position;
+	if (center_node->info.label != 0 ){
+		Node* previous_node = Nodes_Map[center_node->info.label -1 ];
+		angle = arg(node_position  -  previous_node->info.position );
+	}	
+	geometry_msgs::PoseStamped	msg_out = construct_msg(node_position,angle);
+	return msg_out;
+}
+
+
 int RegionGraph::connect_inside_region( geometry_msgs::PoseStamped& pose_msg ){
 	
 	int status = 1;
@@ -1509,7 +1523,7 @@ int RegionGraph::check_if_center_is_in_current_sub_graph(){
 	for( std::list <Node*>::iterator sub_graph_iter =  nodes_in_current_subgraph.begin(); sub_graph_iter !=  nodes_in_current_subgraph.end(); sub_graph_iter++  ){
 		Node* this_node = *sub_graph_iter;
 		std::complex<double> difference = goal_complex - this_node->info.position;
-		if (abs(difference) < 0.01){
+		if (abs(difference) < 0.10){
 			status=1;
 			break;
 		}
