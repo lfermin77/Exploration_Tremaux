@@ -6,7 +6,7 @@
     <param name="base_watchdog_timeout" value="0.2"/>
   </node>
   
-  <node pkg="cg_mrslam" type="sr_slam_map" name="graph_slam" args=" -minInliers 2 -windowLoopClosure 4 -maxScore 0.4 ">
+  <node pkg="cg_mrslam" type="sr_slam_map" name="graph_slam" args=" -minInliers 3 -windowLoopClosure 5 -maxScore 0.9 ">
   </node>
   
   <node pkg="inc_dude" type="inc_dude" name="inc_DuDe" args="2.5 ">
