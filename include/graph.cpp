@@ -1692,9 +1692,6 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 				if(Region_to->id ==-1){// Frontier
 					distance_to_edge += 1000;
 				}
-				if(Region_to->nodes_inside.size() == 0){// Empty region
-					distance_to_edge += 500;
-				}
 
 
 				
