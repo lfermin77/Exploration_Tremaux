@@ -1255,7 +1255,7 @@ int RegionGraph::connect_inside_region( geometry_msgs::PoseStamped& pose_msg ){
 int RegionGraph::connect_inside_region_closer( geometry_msgs::PoseStamped& pose_msg ){
 	
 	int status = 1;
-	float distance_threshold = 0.05;
+	float distance_threshold = 0.20;
 	std::cout << " Trying to connect inside" << std::endl;		
 	Region_Node* current_Region = Region_Nodes_Map[  Nodes_Map[current_node_id]->info.region_label   ];
 	
@@ -1332,7 +1332,7 @@ int RegionGraph::connect_inside_region_closer( geometry_msgs::PoseStamped& pose_
 		//*/	
 			
 		Node* closer_node = NULL;
-		/*
+		//*
 		float min_distance = std::numeric_limits<float>::infinity();
 		for(std::list <Node*>::iterator node_iter = current_Region->nodes_inside.begin(); node_iter != current_Region->nodes_inside.end(); node_iter++){
 			Node* current_node = *node_iter;
@@ -1348,7 +1348,9 @@ int RegionGraph::connect_inside_region_closer( geometry_msgs::PoseStamped& pose_
 		}
 		//*/
 		/////
-		closer_node = current_Region->Node_Center;
+		if(current_Region->Node_Center->info.sub_region != Nodes_Map[current_node_id]->info.sub_region ){
+			closer_node = current_Region->Node_Center;
+		}
 		
 		node_position = closer_node->info.position;
 		if (closer_node->info.label != 0 ){
@@ -1489,7 +1491,7 @@ int RegionGraph::check_if_old_goal_is_in_current_sub_graph(geometry_msgs::PoseSt
 	for( std::list <Node*>::iterator sub_graph_iter =  nodes_in_current_subgraph.begin(); sub_graph_iter !=  nodes_in_current_subgraph.end(); sub_graph_iter++  ){
 		Node* this_node = *sub_graph_iter;
 		std::complex<double> difference = goal_complex - this_node->info.position;
-		if (abs(difference) < 0.01){
+		if (abs(difference) < 0.20){
 			status=1;
 			break;
 		}
@@ -1657,6 +1659,16 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 	//Establish Priority
 	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
 		Region_Edge* Region_Edge_ptr = *region_edge_iter;
+		Region_Node*  Region_to;
+		if(Region_Edge_ptr->First_Region == current_Region){
+			Region_to = Region_Edge_ptr->Second_Region;
+		}
+		else{
+			Region_to = Region_Edge_ptr->First_Region;
+		}
+		
+		
+		
 		for(int i=0;i< Region_Edge_ptr->Sub_Edges.size();i++){
 			Region_Sub_Edge* current_Sub = & Region_Edge_ptr->Sub_Edges[i];
 			if ( current_Sub->Edges_out.size() ==0  & (current_Sub != Entrance_Edge_ptr )){
@@ -1676,9 +1688,15 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 				distance_to_edge = abs(transformed_point - Nodes_Map[current_node_id]->info.position);
 				int from = *current_Sub->parent_edge.begin();
 				int to = *current_Sub->parent_edge.rbegin();
-				if (from < 0 || to < 0){
+//				if (from < 0 || to < 0){
+				if(Region_to->id ==-1){// Frontier
 					distance_to_edge += 1000;
 				}
+				if(Region_to->nodes_inside.size() == 0){// Empty region
+					distance_to_edge += 500;
+				}
+
+
 				
 				Priority_Queue[distance_to_edge] =  current_Sub;
 			}
@@ -1695,16 +1713,17 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 	}
 	//*/
 	
-	float edge_node_threshold = 1.00;
+	float edge_node_threshold = 2.00;
 	
 	if(Priority_Queue.size() > 0){
 		std::map<float, Region_Sub_Edge*>::iterator top_priority_index = Priority_Queue.begin();
 		std::complex<double> goal_position = top_priority_index->second->middle_point;
+		
 		std::complex<double> difference = goal_position - Nodes_Map[current_node_id]->info.position;
 		//////
 		Region_Edge* pointing_edge = Region_Edges_Map[top_priority_index->second->parent_edge];
 		Region_Node* other_region;
-		float current_angle=0;
+
 		if(current_Region == pointing_edge->First_Region){
 			other_region = pointing_edge->Second_Region;
 		}
@@ -1712,7 +1731,10 @@ int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){
 			other_region = pointing_edge->First_Region;
 		}
 		std::cout << "Going from region "<< current_Region->id << " to "<< other_region->id << std::endl;
+
 		/////////					
+		std::cout << "   Distance to edge "<< abs( difference ) << std::endl;
+		float current_angle=0;
 		if ( abs( difference ) > edge_node_threshold || other_region->id == -1){
 			pose_msg = construct_msg(goal_position, std::arg(difference));
 			if(other_region->id == -1){

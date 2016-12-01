@@ -246,14 +246,22 @@ class ROS_handler
 //				int region_completed = Tremaux_Graph.Tremaux_data(pose_to_publish) ;  
 
 				geometry_msgs::PoseStamped center_goal; 
-				int is_connected = Tremaux_Graph.connect_inside_region_closer(center_goal);
-				
+				int valid_goal = Tremaux_Graph.connect_inside_region_closer(center_goal);
+				//*
 				int last_goal_reached = Tremaux_Graph.check_if_old_goal_is_in_current_sub_graph(center_goal);
 				if(last_goal_reached >0){
 					std::cout << "goal in path "<< std::endl;
 				}
 				else{
 					std::cout << "goal NOT in path "<< std::endl;
+				}
+				//*/
+				/////
+				if(valid_goal > 0){
+					std::cout << "isNOTconnected "<< std::endl;
+				}
+				else{
+					std::cout << " isconnected "<< std::endl;
 				}
 				
 
@@ -318,8 +326,9 @@ class ROS_handler
 				if(trying_to_connect){
 					std::cout << "Trying_to_connect "<< std::endl;
 					int last_goal_reached = Tremaux_Graph.check_if_old_goal_is_in_current_sub_graph(Last_goal);
-					if (last_goal_reached > 0){
-						std::cout << "last_goal_reached "<< std::endl;
+//					if (last_goal_reached > 0){
+					if (valid_goal < 0){
+						std::cout << "Region is now considered connected "<< std::endl;
 						trying_to_connect = false;
 						publish_goal(pose_to_publish);						
 						Last_goal.pose = pose_to_publish.pose;
@@ -327,14 +336,18 @@ class ROS_handler
 					else{
 						// do nothing, keep on connecting
 						std::cout << "keep on connecting "<< std::endl;
+						trying_to_connect= true;
 					}
 					////
 				}
 				else{ // NOT connecting
 					std::cout << "not connecting "<< std::endl;
 					int is_center_connected = Tremaux_Graph.check_if_center_is_in_current_sub_graph();
-					if(is_center_connected < 0){ // CHECK IF THE RIGHT FUNCTION
-						center_goal = Tremaux_Graph.region_center();
+					
+					
+//					if(is_center_connected < 0){ // CHECK IF THE RIGHT FUNCTION
+					if(valid_goal > 0){ // CHECK IF THE RIGHT FUNCTION
+//						center_goal = Tremaux_Graph.region_center();
 						publish_goal(center_goal);
 						trying_to_connect= true;
 						std::cout << "will try to connect "<< std::endl;
