@@ -1255,7 +1255,7 @@ int RegionGraph::connect_inside_region( geometry_msgs::PoseStamped& pose_msg ){
 int RegionGraph::connect_inside_region_closer( geometry_msgs::PoseStamped& pose_msg ){
 	
 	int status = 1;
-	float distance_threshold = 0.20;
+	float distance_threshold = 0.10;
 	std::cout << " Trying to connect inside" << std::endl;		
 	Region_Node* current_Region = Region_Nodes_Map[  Nodes_Map[current_node_id]->info.region_label   ];
 	
