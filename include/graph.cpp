@@ -1322,6 +1322,50 @@ int RegionGraph::connect_inside_region_closer( geometry_msgs::PoseStamped& pose_
 		status = -1;
 	}
 	else{
+		// CHECK CONNECTIONS IN THE NEIGBOURHOOD
+		std::map<int, std::set<int> > connected_outside;
+		for(std::vector<Region_Edge*>::iterator regionEdge_iter = current_Region->connected.begin(); regionEdge_iter != current_Region->connected.end(); regionEdge_iter++){
+			Region_Node * other_region;
+			if(  (*regionEdge_iter)->First_Region == current_Region  ){
+				other_region = (*regionEdge_iter)->Second_Region;
+			}
+			else{
+				other_region = (*regionEdge_iter)->First_Region;
+			}
+			///////
+			for( std::vector<Region_Sub_Edge>::iterator subEdge_iter = (*regionEdge_iter)->Sub_Edges.begin(); subEdge_iter != (*regionEdge_iter)->Sub_Edges.end(); subEdge_iter++){
+
+				for(std::vector <Edge*>::iterator Out_iter = subEdge_iter->Edges_out.begin(); Out_iter != subEdge_iter->Edges_out.end(); Out_iter++ ){
+					Edge* out_edge = *Out_iter;
+					std::cout << "Out edge from region "<< out_edge->from->info.region_label << " to region " << out_edge->to->info.region_label  << std::endl;
+					
+					
+					for(std::vector <Edge*>::iterator In_iter = subEdge_iter->Edges_in.begin(); In_iter != subEdge_iter->Edges_in.end(); In_iter++ ){
+						Edge* in_edge = *In_iter;
+						
+						if(out_edge->to->info.sub_region == in_edge->from->info.sub_region ){
+							std::cout << "Consider connected subgraphs "<< out_edge->from->info.sub_region << " and " << in_edge->to->info.region_label  << std::endl;
+							connected_outside [out_edge->from->info.sub_region].insert(in_edge->to->info.region_label);
+							connected_outside [in_edge->to->info.region_label].insert(out_edge->from->info.sub_region);
+						}
+					}
+				}
+				
+			}
+			/////////
+			
+			
+		}
+		//////
+		for(std::map<int, std::set<int> >::iterator map_iter = connected_outside.begin(); map_iter != connected_outside.end(); map_iter ++){
+			std::cout << "  Subraph "<< map_iter->first << " connections ";			
+			for( std::set<int>::iterator set_iter = map_iter->second.begin(); set_iter != map_iter->second.end(); set_iter ++ ){
+							std::cout << "   "<< *set_iter;
+			}
+			std::cout << std::endl;
+		}
+
+
 		/*
 		std::cout << "   Sub-graphs NOT connected " <<  std::endl;
 		for(std::map <int, Node*>::iterator map_iter = min_Node_mapper.begin(); map_iter != min_Node_mapper.end(); map_iter++  ){
