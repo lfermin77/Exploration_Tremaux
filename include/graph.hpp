@@ -168,9 +168,9 @@ class RegionGraph{
 	int check_if_center_is_in_current_sub_graph();
 	
 	geometry_msgs::PoseStamped region_center();
+	std::vector<std::complex<double> >  exploration_status();
 	
-	
-	
+	///////////////////////////
 	protected:
 	void extract_subgraph();
 	void evaluate_list_connectivity(std::list <Node*> list_in, int name);
@@ -185,8 +185,12 @@ class RegionGraph{
 	geometry_msgs::PoseStamped extract_exploration_goal( std::vector<int> input_regions);
 	geometry_msgs::PoseStamped choose_closer_frontier(std::vector<int> region);
 	int check_map( geometry_msgs::PoseStamped& pose_msg );
+	std::set<int> check_subgraphs_connection();
 	
 	
+	
+	
+	//////////////////////// VARIABLES
 	int current_node_id;
 	nav_msgs::MapMetaData image_info;
 	

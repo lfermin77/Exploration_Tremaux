@@ -367,7 +367,7 @@ class ROS_handler
 					Last_goal.header.seq = 0;
 				}	
 				
-				publish_markers(Tremaux_Graph.collect_all_frontiers());
+
 				
 				cv::Mat edge_image = Tremaux_Graph.segment_current_frontier ( image_tagged );
 				grad = edge_image.clone();
@@ -376,6 +376,11 @@ class ROS_handler
 				data_ready = map_received = path_received = graph_received = tagged_image_received = GT_received = false;
 //				ground_truth.push_back(current_ground_truth);
 				std::cout<<"Ground Truth size "<< ground_truth.size() <<std::endl;
+				
+				
+//				publish_markers(Tremaux_Graph.collect_all_frontiers());
+				publish_markers(Tremaux_Graph.exploration_status());
+				
 				std::cout << std::endl << std::endl;	
 				
 			}
