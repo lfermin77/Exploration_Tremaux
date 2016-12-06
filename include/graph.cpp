@@ -477,7 +477,7 @@ void RegionGraph::build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image
 	// std::cout << "      Edge Extracted "<< std::endl;
 
 	for (edge_points_mapper::iterator it2 = mapping_frontier_to_point_array.begin(); it2 != mapping_frontier_to_point_array.end(); it2 ++){
-		if(it2->second.size() > 0){
+		if(it2->second.size() > 10){
 			Region_Edge *InsideEdge;
 			InsideEdge = new Region_Edge;
 			

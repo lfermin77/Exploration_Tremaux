@@ -377,6 +377,7 @@ class ROS_handler
 //				ground_truth.push_back(current_ground_truth);
 				std::cout<<"Ground Truth size "<< ground_truth.size() <<std::endl;
 				
+//				std::cout << Tremaux_Graph;			
 				
 //				publish_markers(Tremaux_Graph.collect_all_frontiers());
 				publish_markers(Tremaux_Graph.exploration_status());
