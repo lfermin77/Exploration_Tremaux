@@ -361,13 +361,6 @@ class ROS_handler
 				//*/
 				
 				
-				if (false){
-					publish_goal(pose_to_publish);
-					Last_goal.pose = pose_to_publish.pose;
-					Last_goal.header.seq = 0;
-				}	
-				
-
 				
 				cv::Mat edge_image = Tremaux_Graph.segment_current_frontier ( image_tagged );
 				grad = edge_image.clone();
