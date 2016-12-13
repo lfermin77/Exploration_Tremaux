@@ -71,6 +71,7 @@ class ROS_handler
 	
 	std::map<int, std::set<int> > simplified_graph;
 	
+	
 	public:
 		ROS_handler(const std::string& mapname) : mapname_(mapname),  it_(n)
 		{
