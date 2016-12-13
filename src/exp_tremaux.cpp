@@ -68,6 +68,8 @@ class ROS_handler
 	std::vector <geometry_msgs::Point> ground_truth;
 	geometry_msgs::Point current_ground_truth;
 	geometry_msgs::Point *first_pose;
+
+	std::map<int, std::set<int> > simplified_graph;
 	
 	public:
 		ROS_handler(const std::string& mapname) : mapname_(mapname),  it_(n)
