@@ -243,10 +243,62 @@ class ROS_handler
 				float time_elapsed = 1000*((float)(time_after - time_before) )/CLOCKS_PER_SEC;
 
 				std::map<int, std::set<int> >  new_graph = Tremaux_Graph.extract_simplified_graph();
+				//*
+				//Compare graphs
+				std::set< std::set<int> > new_edges;
+				std::vector<int> new_nodes;
+
+				for(std::map<int, std::set<int> >::iterator graph_iter = new_graph.begin(); graph_iter != new_graph.end(); graph_iter ++){
+					int new_label = graph_iter-> first;
+					std::set<int> new_set   = graph_iter-> second;
+					
+					std::map<int, std::set<int> >::iterator old_node_iter = simplified_graph.find(new_label);
+
+					if (old_node_iter == simplified_graph.end() ){
+						std::cout << "  New node "<< new_label << std::endl;
+						new_nodes.push_back(new_label);
+						//insert them all
+						for(std::set<int>::iterator set_iter =  new_set.begin(); set_iter !=  new_set.end(); set_iter ++ ){
+							std::set<int> current_arc={new_label, *set_iter};
+							new_edges.insert(current_arc);
+						}							
+					}
+					else{
+						//check edges
+						std::set<int> old_set = old_node_iter-> second;
+						if(old_set != new_set){
+							std::cout << "  Edge variation in node: "<< new_label << std::endl;
+							for(std::set<int>::iterator set_iter =  new_set.begin(); set_iter !=  new_set.end(); set_iter ++ ){
+								std::set<int>::iterator query_iter = old_set.find( *set_iter);
+								if(query_iter == old_set.end() ){
+									// new connection
+									std::set<int> current_arc = {new_label, *set_iter};
+									new_edges.insert(current_arc);
+									std::cout << "     edge "<< new_label << " with "<< *set_iter << std::endl;
+								}
+
+							}							
+							
+						}
+					}
+					//
+				}
+				//////
+				for( std::set< std::set<int> >::iterator set_set_iter = new_edges.begin(); set_set_iter != new_edges.end(); set_set_iter ++ ){ 
+					std::set<int> connection = *set_set_iter;
+					std::cout << "  New Edges: "<<*connection.begin() << " with " <<  *connection.rbegin()  <<   std::endl;
+				}
 
 
+				
+				
+				
+			
 
+				//*/
 				simplified_graph = new_graph;
+				/*
+				// Print Graph
 				for(std::map<int, std::set<int> >::iterator graph_iter = simplified_graph.begin(); graph_iter != simplified_graph.end(); graph_iter ++){
 					std::set<int> connection_set = graph_iter->second;
 					std::cout << "  node " << graph_iter->first << ": ";										
@@ -256,6 +308,7 @@ class ROS_handler
 					}
 					std::cout << "  " << std::endl;
 				}
+				//*/
 
 
 
