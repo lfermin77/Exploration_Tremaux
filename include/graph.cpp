@@ -1911,3 +1911,42 @@ std::vector<std::complex<double> >  RegionGraph::exploration_status(){
 	}
 	return points_in_frontier;
 }
+
+
+
+
+
+
+
+
+std::map<int, std::set<int> > RegionGraph::extract_simplified_graph(){
+	std::map<int, std::set<int> > simplified_graph;
+	
+	for( std::unordered_map <int,Node*>::iterator node_iter = Nodes_Map.begin(); node_iter != Nodes_Map.end(); node_iter ++ ){
+		Node* current_node = node_iter->second;
+		std::set<int> connections;
+		
+		for(int i=0; i<  current_node->connected.size(); i++){
+			Node* To_Node = current_node->connected[i].to;
+			connections.insert(To_Node->info.label);
+		}
+		simplified_graph[current_node->info.label] = connections;
+	}	
+	
+	return simplified_graph;	
+}	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+

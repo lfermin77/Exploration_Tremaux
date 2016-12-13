@@ -241,6 +241,24 @@ class ROS_handler
 				clock_t time_after = clock();
 
 				float time_elapsed = 1000*((float)(time_after - time_before) )/CLOCKS_PER_SEC;
+
+				std::map<int, std::set<int> >  new_graph = Tremaux_Graph.extract_simplified_graph();
+
+
+
+				simplified_graph = new_graph;
+				for(std::map<int, std::set<int> >::iterator graph_iter = simplified_graph.begin(); graph_iter != simplified_graph.end(); graph_iter ++){
+					std::set<int> connection_set = graph_iter->second;
+					std::cout << "  node " << graph_iter->first << ": ";										
+					for(std::set<int>::iterator set_iter = connection_set.begin(); set_iter != connection_set.end(); set_iter ++){
+						int value = *set_iter; 
+						std::cout << "  " << *set_iter;
+					}
+					std::cout << "  " << std::endl;
+				}
+
+
+
 //				std::cout << "Elapsed time in building: "<< time_elapsed <<" ms" << std::endl<< std::endl;
 //				std::cout << Tremaux_Graph;			
 
