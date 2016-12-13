@@ -71,8 +71,10 @@ class Region_Node; //forward declaration
 //////
 class Region_Sub_Edge{
 	public:
+	std::set<int> parent_edge;
 	std::vector<cv::Point> frontier;
-	std::vector <Edge*> Edges_in; //Refered to First Region
+	std::complex<double> middle_point;
+	std::vector <Edge*> Edges_in; //Refered to Current Region
 	std::vector <Edge*> Edges_out;
 	
 };
@@ -99,6 +101,7 @@ class Region_Node{
 	Node* Node_Center;
 	std::list <Node*> nodes_inside;
 	std::list < std::list <Node*> > sub_graphs;
+	std::map <int, std::list <Node*> > sub_graphs_map;
 	float distance_from_origin;
 	Region_Node* predecesor;	
 	std::vector<cv::Point> contour;
@@ -153,14 +156,21 @@ class RegionGraph{
 
 	int Tremaux_data( geometry_msgs::PoseStamped& pose_msg );
 	int connect_inside_region( geometry_msgs::PoseStamped& pose_msg );
+	int connect_inside_region_closer( geometry_msgs::PoseStamped& pose_msg );
 	int connect_inside_region_greedy( geometry_msgs::PoseStamped& pose_msg );
 
 	int number_loop_closures();
 	std::complex<double> Last_node_position(){return Nodes_Map[current_node_id]->info.position;};
 	std::vector<float> extract_error_per_node(std::vector<geometry_msgs::Point>  gt_nodes, float & average);
 	
+	int choose_goal( geometry_msgs::PoseStamped& pose_msg );
+	int check_if_old_goal_is_in_current_sub_graph(geometry_msgs::PoseStamped pose_msg );
+	int check_if_center_is_in_current_sub_graph();
 	
+	geometry_msgs::PoseStamped region_center();
+	std::vector<std::complex<double> >  exploration_status();
 	
+	///////////////////////////
 	protected:
 	void extract_subgraph();
 	void evaluate_list_connectivity(std::list <Node*> list_in, int name);
@@ -175,8 +185,12 @@ class RegionGraph{
 	geometry_msgs::PoseStamped extract_exploration_goal( std::vector<int> input_regions);
 	geometry_msgs::PoseStamped choose_closer_frontier(std::vector<int> region);
 	int check_map( geometry_msgs::PoseStamped& pose_msg );
+	std::set<int> check_subgraphs_connection();
 	
 	
+	
+	
+	//////////////////////// VARIABLES
 	int current_node_id;
 	nav_msgs::MapMetaData image_info;
 	

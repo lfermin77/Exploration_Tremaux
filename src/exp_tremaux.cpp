@@ -8,6 +8,7 @@
 #include "geometry_msgs/PoseArray.h"
 #include "geometry_msgs/PoseStamped.h"
 
+#include <ros/package.h>
 
 //openCV
 #include <cv_bridge/cv_bridge.h>
@@ -54,6 +55,8 @@ class ROS_handler
 	bool map_received, path_received, graph_received, tagged_image_received, GT_received;
 	geometry_msgs::PoseStamped pose_to_publish; 
 	geometry_msgs::PoseStamped Last_goal; 
+	bool trying_to_connect;
+
 
 	//Statistics
 	float distance;
@@ -92,6 +95,7 @@ class ROS_handler
 			
 			counter =0;
 			map_received = path_received = graph_received = tagged_image_received = GT_received = false;
+			trying_to_connect=false;
 			
 			//Statistics
 			save_sub_ = n.subscribe("save_file", 10, &ROS_handler::UncertaintyCallback, this);
@@ -100,10 +104,13 @@ class ROS_handler
 			time_counter = 0;
 			cum_time=0;
 			first_pose=NULL;
-			
-//			myfile.open("/home/unizar/ROS_Indigo/catkin_ws/src/Exploration_Tremaux/results/Results.txt");    //casa
-			myfile.open("/home/leonardo/ROS_Indigo/catkin_ws/src/Exploration_Tremaux/results/Results.txt");  //uni
+						
+			std::string path = ros::package::getPath("exp_tremaux");
+			path.append("/results/Results.txt");
+			myfile.open(path);  
 			myfile << "Iteration, Processing_Time, Distance, Area, LoopClosures, Current Error \n";
+
+			
 		}
 
 
@@ -142,18 +149,16 @@ class ROS_handler
 			
 			distance += delta_distance;
 			// UNSTUCK
-			{
-
-				
+			{			
 				if( delta_distance  < 0.05){
 					counter++;
-		//			std::cout << "Counter is " << counter << std::endl;
 				}
 				else{
 					counter=0;
 				}
 				
 				if(counter > 20){
+//				if(false){
 					geometry_msgs::PoseStamped pose_out;
 					pose_out.pose.orientation = msg.poses.front().orientation;
 					double angle = 2*atan2(pose_out.pose.orientation.z, pose_out.pose.orientation.w);
@@ -167,6 +172,7 @@ class ROS_handler
 					//Reset last goal
 
 					Last_goal.header.seq=-1;
+					trying_to_connect=false;
 					//*/		
 				}
 			}
@@ -196,7 +202,8 @@ class ROS_handler
 //////////////
 		void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 		{
-			std::cout << "New Image"<< std::endl;
+			std::cout << "... ";
+			
 			cv_bridge::CvImagePtr temporal_ptr;
 
 			try
@@ -222,7 +229,8 @@ class ROS_handler
 
 			if(data_ready){
 				cv::Mat occupancy_image = image_map.clone();
-				
+				std::cout << std::endl;
+//				std::cout << "\033[2J\033[1;1H";				// clean whole console
 
 
 				RegionGraph Tremaux_Graph;
@@ -236,7 +244,32 @@ class ROS_handler
 //				std::cout << Tremaux_Graph;			
 
 //				time_before = clock();
-				int region_completed = Tremaux_Graph.Tremaux_data(pose_to_publish) ;  
+//				Tremaux_Graph.choose_goal(pose_to_publish) ;  
+//				int region_completed = Tremaux_Graph.Tremaux_data(pose_to_publish) ;  
+
+				geometry_msgs::PoseStamped center_goal; 
+				int valid_goal = Tremaux_Graph.connect_inside_region_closer(center_goal);
+				//*
+				int last_goal_reached = Tremaux_Graph.check_if_old_goal_is_in_current_sub_graph(center_goal);
+				if(last_goal_reached >0){
+					std::cout << "goal in path "<< std::endl;
+				}
+				else{
+					std::cout << "goal NOT in path "<< std::endl;
+				}
+				//*/
+				/////
+				if(valid_goal > 0){
+					std::cout << "isNOTconnected "<< std::endl;
+				}
+				else{
+					std::cout << " isconnected "<< std::endl;
+				}
+				
+
+
+				
+				int region_completed = Tremaux_Graph.choose_goal(pose_to_publish) ;  
 				time_after = clock();
 				time_elapsed = 1000*((float)(time_after - time_before) )/CLOCKS_PER_SEC;
 				{// RESULTS
@@ -266,9 +299,10 @@ class ROS_handler
 				}
 
 
-				//*
-				if (region_completed < 0  & Last_goal.header.seq != -1){
-//					Tremaux_Graph.connect_inside_region(pose_to_publish);
+
+				/*
+				if (region_completed < 0  && Last_goal.header.seq != -1){ //return to center of region
+//				if (is_connected > 0  && Last_goal.header.seq != -1){ // return till connected
 
 					float difference_x = Last_goal.pose.position.x - Last_node.x;
 					float difference_y = Last_goal.pose.position.y - Last_node.y;
@@ -288,12 +322,47 @@ class ROS_handler
 				}
 				else
 				//*/
-				{
-					publish_goal(pose_to_publish);
-					Last_goal.pose = pose_to_publish.pose;
-					Last_goal.header.seq = 0;
-				}	
-				publish_markers(Tremaux_Graph.collect_all_frontiers());
+				
+				
+				//*
+				if(trying_to_connect){
+					std::cout << "Trying_to_connect "<< std::endl;
+					int last_goal_reached = Tremaux_Graph.check_if_old_goal_is_in_current_sub_graph(Last_goal);
+//					if (last_goal_reached > 0){
+					if (valid_goal < 0){
+						std::cout << "Region is now considered connected "<< std::endl;
+						trying_to_connect = false;
+						publish_goal(pose_to_publish);						
+						Last_goal.pose = pose_to_publish.pose;
+					}
+					else{
+						// do nothing, keep on connecting
+						std::cout << "keep on connecting "<< std::endl;
+						trying_to_connect= true;
+					}
+					////
+				}
+				else{ // NOT connecting
+					std::cout << "not connecting "<< std::endl;
+					int is_center_connected = Tremaux_Graph.check_if_center_is_in_current_sub_graph();
+					
+					
+//					if(is_center_connected < 0){ // CHECK IF THE RIGHT FUNCTION
+					if(valid_goal > 0){ // CHECK IF THE RIGHT FUNCTION
+//						center_goal = Tremaux_Graph.region_center();
+						publish_goal(center_goal);
+						trying_to_connect= true;
+						std::cout << "will try to connect "<< std::endl;
+						Last_goal.pose = pose_to_publish.pose;
+					}
+					else{
+						publish_goal(pose_to_publish);
+						std::cout << "regular exploring "<< std::endl;
+					}						
+				}
+				//*/
+				
+				
 				
 				cv::Mat edge_image = Tremaux_Graph.segment_current_frontier ( image_tagged );
 				grad = edge_image.clone();
@@ -302,6 +371,12 @@ class ROS_handler
 				data_ready = map_received = path_received = graph_received = tagged_image_received = GT_received = false;
 //				ground_truth.push_back(current_ground_truth);
 				std::cout<<"Ground Truth size "<< ground_truth.size() <<std::endl;
+				
+//				std::cout << Tremaux_Graph;			
+				
+//				publish_markers(Tremaux_Graph.collect_all_frontiers());
+				publish_markers(Tremaux_Graph.exploration_status());
+				
 				std::cout << std::endl << std::endl;	
 				
 			}

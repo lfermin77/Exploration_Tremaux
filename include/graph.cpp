@@ -300,20 +300,10 @@ int RegionGraph::build_Region_Graph(std::vector<geometry_msgs::Point> edge_marke
 //	std::cout << "   Center of Regions Found "<< std::endl;
 
 //	segment_frontier (Nodes_Map[current_node_id]->info.region_label, Tag_image );
-/*
-	std::set<int> touching_regions;
-	touching_regions.insert(-1);
-	touching_regions.insert(Nodes_Map[current_node_id]->info.region_label);
-	
-	RegionEdgeMapper::iterator reg_it = Region_Edges_Map.find(touching_regions);
-	if(reg_it != Region_Edges_Map.end() ){
-		segment_edge (touching_regions, Tag_image );
-	}
-*/
-//	segment_every_edge (Nodes_Map[current_node_id]->info.region_label, Tag_image);
-	segment_every_edge (-1 , original_image);
-	segment_every_edge (Nodes_Map[current_node_id]->info.region_label, original_image);
 
+
+	segment_every_edge (Nodes_Map[current_node_id]->info.region_label, original_image);
+	segment_every_edge (-1 , original_image);
 
 	
 
@@ -344,8 +334,10 @@ void RegionGraph::extract_subgraph(){
 					Nodes_in_sub_Region.push_back(*it);
 				}
 			}
-			sub_region++;
+
 			(*Region_iter).second->sub_graphs.push_back(Nodes_in_sub_Region);
+			(*Region_iter).second->sub_graphs_map[sub_region]= Nodes_in_sub_Region;
+			sub_region++;
 		}
 		////		
 	}
@@ -485,7 +477,7 @@ void RegionGraph::build_region_graph(cv::Mat  Tag_image, cv::Mat  original_image
 	// std::cout << "      Edge Extracted "<< std::endl;
 
 	for (edge_points_mapper::iterator it2 = mapping_frontier_to_point_array.begin(); it2 != mapping_frontier_to_point_array.end(); it2 ++){
-		if(it2->second.size() > 0){
+		if(it2->second.size() > 10){
 			Region_Edge *InsideEdge;
 			InsideEdge = new Region_Edge;
 			
@@ -587,8 +579,46 @@ void RegionGraph::segment_every_edge (int region_id, cv::Mat  original_image){
 	
 	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_region->connected.begin(); region_edge_iter != current_region->connected.end();region_edge_iter++){
 		segment_edge ( (*region_edge_iter)->Nodes_ids , original_image);
+		
+		if ( *((*region_edge_iter)->Nodes_ids.begin() ) !=-1){ 
+			// Asign SLAM edges to Region sub-edges
+			for(int i=0;i < (*region_edge_iter)->Edges_in_border.size();i++){
+				Edge* current_edge = (*region_edge_iter)->Edges_in_border[i];
+				std::complex<double> pose_from = current_edge->from->info.position;
+				std::complex<double> pose_to   = current_edge->to   ->info.position;
+				std::complex<double> midle_pose = (pose_from + pose_to)/(double)2;
+				bool found=false;
+				//Find frontier in current sub-edge
+				for (int j=0; j < (*region_edge_iter)->Sub_Edges.size();j++){
+					std::vector<cv::Point> frontier = (*region_edge_iter)->Sub_Edges[j].frontier;
+					// Compare every point in frontier with pose in the middle of edge	
+					for(int z=0; z < frontier.size();z++){				
+						cv::Point current_point = frontier[z];
+						double x = current_point.x * image_info.resolution + image_info.origin.position.x;
+						double y = (image_info.height - current_point.y) * image_info.resolution + image_info.origin.position.y;
+						
+						std::complex<double> transformed_point(x,y);
+						// if near the frontier add it to the edges
+						if (abs(transformed_point - midle_pose )  < 0.6){
+	
+							if(current_edge->from->info.region_label == region_id){
+								(*region_edge_iter)->Sub_Edges[j].Edges_out.push_back(current_edge);
+							}
+							else{
+								(*region_edge_iter)->Sub_Edges[j].Edges_in.push_back(current_edge);
+							}												
+							found= true;
+						}
+						if (found) break;					
+					}
+					if (found) break;
+				}
+				//
+			}
+			////
+		}
+		
 	}
-
 	
 	
 }
@@ -631,6 +661,7 @@ cv::Mat RegionGraph::segment_edge (std::set<int> edge_region_index, cv::Mat  ori
 			
 			Region_Sub_Edge new_sub_edge;
 			new_sub_edge.frontier = contours[i];
+			new_sub_edge.parent_edge = edge_region_index;
 			current_region_edge->Sub_Edges.push_back(new_sub_edge);
 			
 		}
@@ -692,7 +723,7 @@ std::vector<std::complex<double> > RegionGraph::collect_all_frontiers(){
 	for(RegionNodeMapper::iterator node_iter = Region_Nodes_Map.begin();  node_iter != Region_Nodes_Map.end(); node_iter++){
 		Region_Node* current_region = (*node_iter).second;
 		if(current_region->id != -1){
-			points_in_edges.push_back( current_region->Node_Center->info.position  );
+//			points_in_edges.push_back( current_region->Node_Center->info.position  );
 			for(std::vector<Region_Edge*>::iterator edge_iter = current_region->connected.begin(); edge_iter != current_region->connected.end(); edge_iter++){
 				Region_Edge* current_edge = *edge_iter;
 				std::vector<cv::Point> pixel_frontier = current_edge->frontier;
@@ -1094,6 +1125,20 @@ int RegionGraph::Tremaux_data( geometry_msgs::PoseStamped& pose_msg ){
 
 
 
+
+geometry_msgs::PoseStamped RegionGraph::region_center(){
+	Node* center_node = Region_Nodes_Map[ Nodes_Map[current_node_id]->info.region_label ]->Node_Center; 
+	double angle=0;
+	std::complex<double> node_position = center_node->info.position;
+	if (center_node->info.label != 0 ){
+		Node* previous_node = Nodes_Map[center_node->info.label -1 ];
+		angle = arg(node_position  -  previous_node->info.position );
+	}	
+	geometry_msgs::PoseStamped	msg_out = construct_msg(node_position,angle);
+	return msg_out;
+}
+
+
 int RegionGraph::connect_inside_region( geometry_msgs::PoseStamped& pose_msg ){
 	
 	int status = 1;
@@ -1107,6 +1152,7 @@ int RegionGraph::connect_inside_region( geometry_msgs::PoseStamped& pose_msg ){
 	int region_number=0;
 	int current_subgraph = Nodes_Map[current_node_id]->info.sub_region;
 //	std::complex<double> first_position;// = Nodes_Map[current_node_id]->info.position;
+	std::cout << " Current sub-graph " << current_subgraph << std::endl;		
 	
 	// Find current subgraph iterator
 	std::list <Node*>  current_list;
@@ -1133,7 +1179,7 @@ int RegionGraph::connect_inside_region( geometry_msgs::PoseStamped& pose_msg ){
 		int current_sub_region = (*( (*graph_list_iter).begin() ))->info.sub_region;
 	
 		if( current_sub_region != current_subgraph){
-//			std::cout << "   analizing sub region " <<  current_sub_region  ;
+			std::cout << "   analizing sub region " <<  current_sub_region  ;
 
 			// Calculate minimum
 			float min_subgraph_distance = std::numeric_limits<float>::infinity();			
@@ -1154,19 +1200,19 @@ int RegionGraph::connect_inside_region( geometry_msgs::PoseStamped& pose_msg ){
 			}
 
 			if (min_subgraph_distance < distance_threshold){
-//				std::cout << ", Considered connected "  << std::endl;			
+				std::cout << ", Considered connected "  << std::endl;			
 			}
 			else{
 				min_dist_mapper[current_sub_region] = min_subgraph_distance;
 				min_Node_mapper[current_sub_region] = current_Node_min;
-//				std::cout << ", with distance: " <<  min_subgraph_distance  << std::endl;
+				std::cout << ", with distance: " <<  min_subgraph_distance  << std::endl;
 			}
 			
 		}
 	}		
 
 	if(min_dist_mapper.size() == 0){
-		std::cout << "   region considered connected " <<  std::endl;
+		std::cout << "   Whole region considered connected " <<  std::endl;
 		status = -1;
 	}
 	else{
@@ -1203,6 +1249,220 @@ int RegionGraph::connect_inside_region( geometry_msgs::PoseStamped& pose_msg ){
 	
 	////////
 	return status;
+}
+
+
+int RegionGraph::connect_inside_region_closer( geometry_msgs::PoseStamped& pose_msg ){
+	
+	int status = 1;
+	float distance_threshold = 0.10;
+	std::cout << " Trying to connect inside" << std::endl;		
+	Region_Node* current_Region = Region_Nodes_Map[  Nodes_Map[current_node_id]->info.region_label   ];
+	
+	
+	std::list < std::list <Node*> > subGraphs = current_Region->sub_graphs;
+	int current_subgraph = Nodes_Map[current_node_id]->info.sub_region;
+	
+	float current_angle=0;
+	std::complex<double> node_position;
+	std::complex<double> current_position = Nodes_Map[current_node_id]->info.position;
+	
+	
+ // ANALIZE CURRENT GRAPH
+	// Find current list
+	std::list <Node*>  current_list;
+	for(std::list < std::list <Node*> >::iterator graph_list_iter = current_Region->sub_graphs.begin(); graph_list_iter != current_Region->sub_graphs.end(); graph_list_iter ++){
+		int current_sub_region = (*( (*graph_list_iter).begin() ))->info.sub_region;
+		if(current_sub_region == current_subgraph ){
+			current_list = *graph_list_iter;
+			break;
+		}
+	}
+	std::set<int> subgraphs_connected = check_subgraphs_connection();
+	
+	////
+	std::map <int, float> min_dist_mapper;
+	std::map <int, Node*> min_Node_mapper;
+	for(std::list < std::list <Node*> >::iterator graph_list_iter = current_Region->sub_graphs.begin(); graph_list_iter != current_Region->sub_graphs.end(); graph_list_iter ++){
+		int current_sub_region = (*( (*graph_list_iter).begin() ))->info.sub_region;
+		
+		std::set<int>::iterator it = subgraphs_connected.find(current_sub_region);
+		if (it == subgraphs_connected.end()){ //couldn't find
+	
+//		if( current_sub_region != current_subgraph){
+			std::cout << "   analizing sub region " <<  current_sub_region  ;
+	
+			// Calculate minimum
+			float min_subgraph_distance = std::numeric_limits<float>::infinity();			
+			Node* current_Node_min = *( (*graph_list_iter).begin() );
+	
+			for(std::list <Node*>::iterator node_iter = current_list.begin(); node_iter != current_list.end(); node_iter++){
+				std::complex<double> first_position = (*node_iter)->info.position;			
+				
+				for(std::list <Node*>::iterator second_node_iter = (*graph_list_iter).begin(); second_node_iter != (*graph_list_iter).end(); second_node_iter++){
+					std::complex<double> second_position = (*second_node_iter)->info.position;
+					
+					float current_distance = norm(first_position - second_position  );
+					if(current_distance < min_subgraph_distance){
+						min_subgraph_distance = current_distance;
+						current_Node_min = *second_node_iter;
+					}				
+				}
+			}
+	
+			if (min_subgraph_distance < distance_threshold){
+				std::cout << ", Considered connected "  << std::endl;			
+			}
+			else{
+				min_dist_mapper[current_sub_region] = min_subgraph_distance;
+				min_Node_mapper[current_sub_region] = current_Node_min;
+				std::cout << ", with distance: " <<  min_subgraph_distance  << std::endl;
+			}
+			
+		}
+	}		
+	////////////////////////
+	if(min_dist_mapper.size() == 0){
+		std::cout << "   Whole region considered connected " <<  std::endl;
+		status = -1;
+	}
+	else{
+
+		/*
+		std::cout << "   Sub-graphs NOT connected " <<  std::endl;
+		for(std::map <int, Node*>::iterator map_iter = min_Node_mapper.begin(); map_iter != min_Node_mapper.end(); map_iter++  ){
+			int sub_graph = map_iter->first;
+			std::cout << "     number: " << sub_graph  << std::endl;
+		}
+		std::cout << "   and current is "<< current_subgraph <<  std::endl;
+		//*/	
+			
+		Node* closer_node = NULL;
+		//*
+		float min_distance = std::numeric_limits<float>::infinity();
+		for(std::list <Node*>::iterator node_iter = current_Region->nodes_inside.begin(); node_iter != current_Region->nodes_inside.end(); node_iter++){
+			Node* current_node = *node_iter;
+			std::map <int, Node*>::iterator disconnected_iter = min_Node_mapper.find(current_node->info.sub_region);
+			
+			if( disconnected_iter != min_Node_mapper.end() ){
+				float distance = abs( current_node->info.position - current_position );
+				if (distance < min_distance){
+					min_distance = distance;
+					closer_node = current_node;
+				}
+			}
+		}
+		//*/
+		/////
+		if(current_Region->Node_Center->info.sub_region != Nodes_Map[current_node_id]->info.sub_region ){
+			closer_node = current_Region->Node_Center;
+		}
+		
+		node_position = closer_node->info.position;
+		if (closer_node->info.label != 0 ){
+			Node* previous_node = Nodes_Map[closer_node->info.label -1 ];
+			current_angle = arg(node_position  -  previous_node->info.position );
+		}
+		else{// initial node 
+			current_angle=0;
+		}
+		pose_msg = construct_msg(node_position,  current_angle) ;
+	}
+	/*
+	if(closer_node != NULL || min_distance > distance_threshold){
+		node_position = closer_node->info.position;
+		if (closer_node->info.label != 0 ){
+			Node* previous_node = Nodes_Map[closer_node->info.label -1 ];
+			current_angle = arg(node_position  -  previous_node->info.position );
+		}
+		else{// initial node 
+			current_angle=0;
+		}
+		pose_msg = construct_msg(node_position,  current_angle) ;
+	}
+	else{
+		status=-1;
+		std::cout << " Map considered connected" << std::endl;	
+	}
+	* */
+
+	////////
+	return status;
+}
+
+
+
+std::set<int> RegionGraph::check_subgraphs_connection(){
+	
+	
+	Region_Node* current_Region = Region_Nodes_Map[  Nodes_Map[current_node_id]->info.region_label   ];
+	
+//	std::cout << "number of sub regions "<< current_Region->sub_graphs.size()   << std::endl;
+	std::map<int, std::set<int> > connected_outside;
+	
+	for(std::vector<Region_Edge*>::iterator regionEdge_iter = current_Region->connected.begin(); regionEdge_iter != current_Region->connected.end(); regionEdge_iter++){
+		Region_Node * other_region;
+		if(  (*regionEdge_iter)->First_Region == current_Region  ){
+			other_region = (*regionEdge_iter)->Second_Region;
+		}
+		else{
+			other_region = (*regionEdge_iter)->First_Region;
+		}
+		///////
+		for( std::vector<Region_Sub_Edge>::iterator subEdge_iter = (*regionEdge_iter)->Sub_Edges.begin(); subEdge_iter != (*regionEdge_iter)->Sub_Edges.end(); subEdge_iter++){
+
+			for(std::vector <Edge*>::iterator Out_iter = subEdge_iter->Edges_out.begin(); Out_iter != subEdge_iter->Edges_out.end(); Out_iter++ ){
+				Edge* out_edge = *Out_iter;
+//				std::cout << "        Out edge from region "<< out_edge->from->info.region_label << " to region " << out_edge->to->info.region_label  << std::endl;
+				
+				
+				for(std::vector <Edge*>::iterator In_iter = subEdge_iter->Edges_in.begin(); In_iter != subEdge_iter->Edges_in.end(); In_iter++ ){
+					Edge* in_edge = *In_iter;
+					
+					if(out_edge->to->info.sub_region == in_edge->from->info.sub_region ){
+//						std::cout << "     CONSIDER CONNECTED SUBGRAPHS "<< out_edge->from->info.sub_region << " and " << in_edge->to->info.sub_region  << std::endl;
+						connected_outside [out_edge->from->info.sub_region].insert(in_edge->to->info.sub_region);
+						connected_outside [in_edge->to->info.sub_region].insert(out_edge->from->info.sub_region);
+					}
+				}
+			}
+			
+		}
+	}
+	////////////////
+	int current_subgraph = Nodes_Map[current_node_id]->info.sub_region;
+	
+	std::set<int> connected_list;	
+	std::queue<int> Q;
+	
+	Q.push( current_subgraph );
+	
+	while (!Q.empty()){
+		int evaluating_sub_graph = Q.front();		Q.pop();
+		for (std::set<int>::iterator dest_iter = connected_outside[evaluating_sub_graph].begin(); dest_iter != connected_outside[evaluating_sub_graph].end(); dest_iter++){
+			int destiny = *dest_iter;
+			
+			std::set<int>::iterator it = connected_list.find(destiny);
+			if (it == connected_list.end()){ //couldn't find
+				connected_list.insert(destiny);
+				Q.push(destiny);
+			}
+		}
+	} 
+	/*
+	std::cout << "  Current Subraph  "<< current_subgraph << std::endl;				
+	std::cout << "  Current Subraph connections ";				
+	for(std::set<int>::iterator set_iter = connected_list.begin(); set_iter != connected_list.end(); set_iter ++){
+		std::cout << "   "<< *set_iter;
+	}
+	std::cout << std::endl;
+	//*/
+
+	
+	/////////////////
+	
+	return connected_list;
+	
 }
 
 
@@ -1299,7 +1559,71 @@ int RegionGraph::connect_inside_region_greedy( geometry_msgs::PoseStamped& pose_
 	return status;
 }
 
+int RegionGraph::check_if_old_goal_is_in_current_sub_graph(geometry_msgs::PoseStamped last_goal ){
+	int status = -1; //it is not here
+	Region_Node* current_Region = Region_Nodes_Map[ Nodes_Map[current_node_id]->info.region_label ];
 
+	int current_sub_graph = Nodes_Map[current_node_id]->info.sub_region;
+	std::list <Node*> nodes_in_current_subgraph = current_Region->sub_graphs_map[current_sub_graph];
+	
+
+	std::complex<double> goal_complex(last_goal.pose.position.x, last_goal.pose.position.y);
+	
+	for( std::list <Node*>::iterator sub_graph_iter =  nodes_in_current_subgraph.begin(); sub_graph_iter !=  nodes_in_current_subgraph.end(); sub_graph_iter++  ){
+		Node* this_node = *sub_graph_iter;
+		std::complex<double> difference = goal_complex - this_node->info.position;
+		if (abs(difference) < 0.20){
+			status=1;
+			break;
+		}
+	}
+
+	/*
+	std::cout << "sub-graphs " << std::endl;	
+	for(std::map <int, std::list <Node*> > ::iterator sub_map_iter = current_Region->sub_graphs_map.begin(); sub_map_iter != current_Region->sub_graphs_map.end(); sub_map_iter++){
+		int value_in_map = sub_map_iter->first;
+		Node*  first_node = *(sub_map_iter->second.begin() );
+		int value_inside = first_node->info.sub_region;
+		std::cout << "value_in_map " << value_in_map<< ", value_inside "<< value_inside << std::endl;
+	}
+	//*/
+	
+	return status;
+}
+
+
+
+int RegionGraph::check_if_center_is_in_current_sub_graph(){
+	int status = -1; //it is not here
+	Region_Node* current_Region = Region_Nodes_Map[ Nodes_Map[current_node_id]->info.region_label ];
+
+	int current_sub_graph = Nodes_Map[current_node_id]->info.sub_region;
+	std::list <Node*> nodes_in_current_subgraph = current_Region->sub_graphs_map[current_sub_graph];
+	
+
+	std::complex<double> goal_complex = current_Region->Node_Center->info.position;//(last_goal.pose.position.x, last_goal.pose.position.y);
+	
+	for( std::list <Node*>::iterator sub_graph_iter =  nodes_in_current_subgraph.begin(); sub_graph_iter !=  nodes_in_current_subgraph.end(); sub_graph_iter++  ){
+		Node* this_node = *sub_graph_iter;
+		std::complex<double> difference = goal_complex - this_node->info.position;
+		if (abs(difference) < 0.10){
+			status=1;
+			break;
+		}
+	}
+
+	/*
+	std::cout << "sub-graphs " << std::endl;	
+	for(std::map <int, std::list <Node*> > ::iterator sub_map_iter = current_Region->sub_graphs_map.begin(); sub_map_iter != current_Region->sub_graphs_map.end(); sub_map_iter++){
+		int value_in_map = sub_map_iter->first;
+		Node*  first_node = *(sub_map_iter->second.begin() );
+		int value_inside = first_node->info.sub_region;
+		std::cout << "value_in_map " << value_in_map<< ", value_inside "<< value_inside << std::endl;
+	}
+	//*/
+	
+	return status;
+}
 
 /*
 Tremaux
@@ -1317,5 +1641,273 @@ Tremaux
 */
 
 
+int RegionGraph::choose_goal( geometry_msgs::PoseStamped& pose_msg ){	
+	int region_completed = 1;
+	
+	Region_Node* current_Region = Region_Nodes_Map[ Nodes_Map[current_node_id]->info.region_label ];
+
+	/* Print Edges
+	std::cout << "Region "<< current_Region->id   << std::endl;
+	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
+		std::cout << "   Edge ("<<  *((*region_edge_iter)->Nodes_ids.begin() ) <<" , "<< *((*region_edge_iter)->Nodes_ids.rbegin() ) <<") "<< std::endl;
+		
+		std::cout << "   Found "<<  (*region_edge_iter)->Sub_Edges.size()<<" sub-edges"<< std::endl;
+		for(int i=0;i< (*region_edge_iter)->Sub_Edges.size();i++){
+			std::cout << "      with  "<<  (*region_edge_iter)->Sub_Edges[i].Edges_in.size()<<" edges in";
+			std::cout << " and "<<  (*region_edge_iter)->Sub_Edges[i].Edges_out.size()<<" edges out"<< std::endl;
+		}
+	}
+	//*/
+	
+	// Is it fully connected?
+	if (current_Region->sub_graphs.size() > 1 ){
+		std::cout << "   Number of subgraphs  "<< current_Region->sub_graphs.size() << ", Should connect region graph  " << std::endl;
+		region_completed = -1;
+		/*
+		if ( connect_inside_region_closer(pose_msg) != -1 ){
+			std::cout << "   Region NOT connected  "<< std::endl;
+			return region_completed;		
+		}
+		//*/
+
+	}
+	
+	//////////////////////////////////////////////////// SET PRIORITIES!!
+	std::map<float, Region_Sub_Edge*> Priority_Queue;
+	
+	// Find Entrance edge
+	int edge_min_index = Edges_Map.size()-1;
+	int node_min_index = current_node_id;
+	Region_Sub_Edge* Entrance_Edge_ptr;
+	
+	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
+		for(int i=0;i< (*region_edge_iter)->Sub_Edges.size();i++){
+			Region_Sub_Edge current_Sub = (*region_edge_iter)->Sub_Edges[i];
+			for(int j=0;j < current_Sub.Edges_in.size();j++){// All entrances
+				int edge_index = current_Sub.Edges_in[j]->info.label;
+				
+			//	std::cout << "Edge ¡ndex "<< edge_index << std::endl;
+				int id_from = Edges_Map[edge_index]->from->info.label;
+				int id_to = Edges_Map[edge_index]->to->info.label;
+				
+				if(id_from+1 == id_to){	// Odometry link
+			//		std::cout << "Edge id from "<< id_from<<" to " << id_to << std::endl << std::endl;
+					if(id_from < node_min_index){// lowest id
+						node_min_index=id_from;
+						edge_min_index = edge_index;
+					}
+						
+				}
+	
+			}			
+		}
+	}
+
+//	std::cout << "Entrance Edge ¡ndex "<< edge_min_index << std::endl;
+	int region_from = Edges_Map[edge_min_index]->from->info.region_label;
+	int region_to = Edges_Map[edge_min_index]->to->info.region_label;
+//	std::cout << "Entrance Edge from "<< region_from<<" to " << region_to << std::endl;
+
+	if(region_from == region_to){
+		std::cout << "First Region "  << std::endl;
+	}
+	else{
+//		std::cout << "Entrance Edge ( "<< region_from << " , "<< region_to <<" )"  << std::endl;
+		std::set<int> region_set = {region_from,region_to};
+		Region_Edge* current_region = Region_Edges_Map[region_set];
+
+		for(int i=0;i< current_region->Sub_Edges.size();i++){
+			Region_Sub_Edge* current_Sub = & current_region->Sub_Edges[i];
+			for(int j=0;j < current_Sub->Edges_in.size();j++){
+				if(current_Sub->Edges_in[j]->info.label == edge_min_index ){
+					if ( current_Sub->Edges_out.size() != 0){
+						std::cout << "Exploration should be over "<< std::endl;
+					}
+					Priority_Queue[10000] =  current_Sub;
+					Entrance_Edge_ptr = current_Sub;
+					current_Sub->middle_point = current_Sub->Edges_in[j]->from->info.position;
+					std::cout << "Entrance Edge ( "<< *(current_Sub->parent_edge.begin() ) << " , "<< *(current_Sub->parent_edge.rbegin() ) <<" )"  << std::endl;
+
+				}
+			}
+		}
+		/////
+	}
+//	std::cout << "Entrance Edge ( "<< *(Entrance_Edge_ptr->parent_edge.begin() ) << " , "<< *(Entrance_Edge_ptr->parent_edge.rbegin() ) <<" )"  << std::endl;
+	///////////// ENTRANCE FOUND////
+
+	
+	//Establish Priority
+	for( std::vector<Region_Edge*>::iterator region_edge_iter = current_Region->connected.begin(); region_edge_iter != current_Region->connected.end();region_edge_iter++){
+		Region_Edge* Region_Edge_ptr = *region_edge_iter;
+		Region_Node*  Region_to;
+		if(Region_Edge_ptr->First_Region == current_Region){
+			Region_to = Region_Edge_ptr->Second_Region;
+		}
+		else{
+			Region_to = Region_Edge_ptr->First_Region;
+		}
+		
+		
+		
+		for(int i=0;i< Region_Edge_ptr->Sub_Edges.size();i++){
+			Region_Sub_Edge* current_Sub = & Region_Edge_ptr->Sub_Edges[i];
+			if ( current_Sub->Edges_out.size() ==0  & (current_Sub != Entrance_Edge_ptr )){
+//				std::cout << " and "<<  current_Sub->Edges_out.size()<<" edges out"<< std::endl;
+				float distance_to_edge;
+				// find mean in the edge
+				cv::Moments mu = cv::moments(current_Sub->frontier);
+				cv::Point current_point( mu.m10/mu.m00 , mu.m01/mu.m00 );
+				
+				double x = current_point.x * image_info.resolution + image_info.origin.position.x;
+				double y = (image_info.height - current_point.y) * image_info.resolution + image_info.origin.position.y;
+		
+				std::complex<double> transformed_point(x,y);
+				
+				current_Sub->middle_point = transformed_point;
+			
+				distance_to_edge = abs(transformed_point - Nodes_Map[current_node_id]->info.position);
+				int from = *current_Sub->parent_edge.begin();
+				int to = *current_Sub->parent_edge.rbegin();
+//				if (from < 0 || to < 0){
+				if(Region_to->id ==-1){// Frontier
+					distance_to_edge += 1000;
+				}
 
 
+				
+				Priority_Queue[distance_to_edge] =  current_Sub;
+			}
+		}
+	}
+	
+//*
+	for (std::map<float, Region_Sub_Edge*>::iterator top_priority_index = Priority_Queue.begin(); top_priority_index != Priority_Queue.end();top_priority_index++){
+		std::cout << "Priority "<< top_priority_index->first << " , ";	
+		std::set<int> current_set = top_priority_index->second->parent_edge;
+		std::cout << "edge ("<< *(current_set.begin()) << ","<<*(current_set.rbegin())<< ")";
+//		std::cout <<  " point "<< top_priority_index->second->middle_point;	
+		std::cout << std::endl;
+	}
+	//*/
+	
+	float edge_node_threshold = 2.00;
+	
+	if(Priority_Queue.size() > 0){
+		std::map<float, Region_Sub_Edge*>::iterator top_priority_index = Priority_Queue.begin();
+		std::complex<double> goal_position = top_priority_index->second->middle_point;
+		
+		std::complex<double> difference = goal_position - Nodes_Map[current_node_id]->info.position;
+		//////
+		Region_Edge* pointing_edge = Region_Edges_Map[top_priority_index->second->parent_edge];
+		Region_Node* other_region;
+
+		if(current_Region == pointing_edge->First_Region){
+			other_region = pointing_edge->Second_Region;
+		}
+		else{
+			other_region = pointing_edge->First_Region;
+		}
+		std::cout << "Going from region "<< current_Region->id << " to "<< other_region->id << std::endl;
+
+		/////////					
+		std::cout << "   Distance to edge "<< abs( difference ) << std::endl;
+		float current_angle=0;
+		if ( abs( difference ) > edge_node_threshold || other_region->id == -1){
+			pose_msg = construct_msg(goal_position, std::arg(difference));
+			if(other_region->id == -1){
+				std::cout << "Choosing frontier "<< std::endl;
+			}
+			else{
+				std::cout << "Choosing edge "<< std::endl;
+			}
+			
+		}
+		else{
+			std::cout << "Choosing node "<< std::endl;
+			std::complex<double> node_position;
+			if(other_region->nodes_inside.size() > 1){
+				Node* closer_node = other_region->Node_Center;			
+				node_position = closer_node->info.position;
+				if (closer_node->info.label != 0 ){
+					Node* previous_node = Nodes_Map[closer_node->info.label -1 ];
+					current_angle = std::arg(node_position  -  previous_node->info.position );
+				}
+				std::cout << "Choosing center in region "<< std::endl;
+			}
+			else{//choose geometric center
+				std::complex<double> cum_position(0,0);
+				for(int j=0; j < other_region-> contour.size(); j++){
+					cv::Point current_point = other_region-> contour[j];
+					double x = current_point.x * image_info.resolution + image_info.origin.position.x;
+					double y = (image_info.height - current_point.y) * image_info.resolution + image_info.origin.position.y;
+			
+					std::complex<double> transformed_point(x,y);
+					cum_position += transformed_point;
+				}
+				cum_position /= (double)other_region-> contour.size();
+				current_angle = arg(cum_position - Nodes_Map[current_node_id]->info.position  );							
+				node_position = cum_position;
+				std::cout << "Choosing geometric center "<< std::endl;
+			}
+			
+			pose_msg = construct_msg(node_position,  current_angle) ;
+		}
+	}
+	
+	
+	
+	return region_completed;
+}
+
+
+std::vector<std::complex<double> >  RegionGraph::exploration_status(){
+	int a=1;
+	Region_Node* frontier_region = Region_Nodes_Map[-1];
+
+
+	std::vector<std::complex<double> > points_in_frontier;
+
+
+	// Number of frontiers
+	int k=0;
+	for(int i=0; i <frontier_region->connected.size();i++){
+//		std::cout<< "frontiers size " << frontier_region->connected[i]->frontier.size() << std::endl;
+
+		std::vector < std::vector<cv::Point> > pixel_frontier_segmented;
+		
+		if(frontier_region->connected[i]->segmented_frontier.size() == 0){
+			pixel_frontier_segmented.push_back( frontier_region->connected[i]->frontier );			
+		}
+		else{
+			pixel_frontier_segmented = frontier_region->connected[i]->segmented_frontier ;
+		}
+
+		
+		for(int i=0; i < pixel_frontier_segmented.size();i++){			
+			
+			//Choose center
+			cv::Moments mu = cv::moments(pixel_frontier_segmented[i]);
+			cv::Point current_point( mu.m10/mu.m00 , mu.m01/mu.m00 );
+			
+			double x = current_point.x * image_info.resolution + image_info.origin.position.x;
+			double y = (image_info.height - current_point.y) * image_info.resolution + image_info.origin.position.y;
+	
+			std::complex<double> transformed_point(x,y);
+			points_in_frontier.push_back(transformed_point);		
+			k++;	
+
+//			std::cout<< "  transformed point " << transformed_point << std::endl;			
+		}
+
+	}
+	
+	std::cout<< "Number of frontiers " << k << std::endl;
+	// Statistics on edges
+	for( std::map < std::set<int> ,Region_Edge*>::iterator reg_edge_iter = Region_Edges_Map.begin(); reg_edge_iter != Region_Edges_Map.end(); reg_edge_iter ++  ){
+		Region_Edge* current_edge = reg_edge_iter->second;
+//		for(int i=0; i < )Sub_Edges
+		int a=1;
+	}
+	return points_in_frontier;
+}
