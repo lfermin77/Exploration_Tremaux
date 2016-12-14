@@ -170,6 +170,9 @@ class RegionGraph{
 	geometry_msgs::PoseStamped region_center();
 	std::vector<std::complex<double> >  exploration_status();
 	
+	std::map<int, std::set<int> > extract_simplified_graph();
+	
+	
 	///////////////////////////
 	protected:
 	void extract_subgraph();
