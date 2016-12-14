@@ -249,9 +249,10 @@ class ROS_handler
 				std::map<int, std::set<int> >  new_graph = Tremaux_Graph.extract_simplified_graph();
 				//*
 				//Compare graphs
-				std::set< std::set<int> > new_edges;
-				std::vector<int> new_nodes;
+
 				{
+					std::set< std::set<int> > new_edges;
+					std::set<int> new_nodes;
 					for(std::map<int, std::set<int> >::iterator graph_iter = new_graph.begin(); graph_iter != new_graph.end(); graph_iter ++){
 						int new_label = graph_iter-> first;
 						std::set<int> new_set   = graph_iter-> second;
@@ -260,7 +261,7 @@ class ROS_handler
 	
 						if (old_node_iter == simplified_graph.end() ){
 							std::cout << "  New node "<< new_label << std::endl;
-							new_nodes.push_back(new_label);
+							new_nodes.insert(new_label);
 							//insert them all
 							for(std::set<int>::iterator set_iter =  new_set.begin(); set_iter !=  new_set.end(); set_iter ++ ){
 								std::set<int> current_arc={new_label, *set_iter};
@@ -271,14 +272,14 @@ class ROS_handler
 							//check edges
 							std::set<int> old_set = old_node_iter-> second;
 							if(old_set != new_set){
-								std::cout << "  Edge variation in node: "<< new_label << std::endl;
+							//	std::cout << "  Edge variation in node: "<< new_label << std::endl;
 								for(std::set<int>::iterator set_iter =  new_set.begin(); set_iter !=  new_set.end(); set_iter ++ ){
 									std::set<int>::iterator query_iter = old_set.find( *set_iter);
 									if(query_iter == old_set.end() ){
 										// new connection
 										std::set<int> current_arc = {new_label, *set_iter};
 										new_edges.insert(current_arc);
-										std::cout << "     edge "<< new_label << " with "<< *set_iter << std::endl;
+									//	std::cout << "     edge "<< new_label << " with "<< *set_iter << std::endl;
 									}
 	
 								}							
@@ -294,10 +295,68 @@ class ROS_handler
 					}
 					if(new_graph.size() == 3){
 						std::cout << "  FIRST GRAPH "<< std::endl;
-//						Distances.insert_first_pair_of_nodes(0,1,
+						float edge_distance_1 = Tremaux_Graph.get_edge_distance(0,1);
+						Distances.insert_first_edge(0,1, Tremaux_Graph.get_edge_distance(0,1) );
+
+						std::cout << Distances << std::endl;
 						
+						int label_new_node=2;
+						std::vector< std::pair<int, float> > edges_in_new_node;
+						std::set< std::set<int> > remaining_edges;
+						
+						for( std::set< std::set<int> >::iterator set_set_iter = new_edges.begin(); set_set_iter != new_edges.end(); set_set_iter ++ ){ 
+							std::set<int> connection = *set_set_iter;
+							if( *connection.begin() == label_new_node || *connection.rbegin() == label_new_node ){
+								std::pair<int, float> pair_to_include;
+								pair_to_include.second = Tremaux_Graph.get_edge_distance(*connection.begin() , *connection.rbegin() );
+								
+								if( *connection.begin() == label_new_node){
+									pair_to_include.first = *connection.rbegin();
+								}
+								else{
+									pair_to_include.first = *connection.begin();
+								}
+								edges_in_new_node.push_back(pair_to_include);
+							}
+							else{
+								remaining_edges.insert(connection);
+							}
+						//
+						}
+						//
+						
+						Distances.insert_new_node(label_new_node,  edges_in_new_node);
+						std::cout << Distances << std::endl;
 					}
-					
+					if(new_nodes.size() > 0){
+						for(std::set<int>::iterator set_iter = new_nodes.begin(); set_iter != new_nodes.end(); set_iter ++ ){
+							int label_new_node = *set_iter;
+							std::vector< std::pair<int, float> > edges_in_new_node;
+							std::set< std::set<int> > remaining_edges;
+							
+							for( std::set< std::set<int> >::iterator set_set_iter = new_edges.begin(); set_set_iter != new_edges.end(); set_set_iter ++ ){ 
+								std::set<int> connection = *set_set_iter;
+								bool label_in_set = ( *connection.begin() == label_new_node) || (*connection.rbegin() == label_new_node);
+
+								if(  label_in_set ){
+									std::pair<int, float> pair_to_include;
+									pair_to_include.second = Tremaux_Graph.get_edge_distance(*connection.begin() , *connection.rbegin() );
+									pair_to_include.first = *connection.begin();									
+									if( *connection.begin() == label_new_node){
+										pair_to_include.first = *connection.rbegin();
+									}
+									if(pair_to_include.first < label_new_node)      edges_in_new_node.push_back(pair_to_include);
+								}
+								else{
+									remaining_edges.insert(connection);
+								}
+							//
+							}
+							//
+							Distances.insert_new_node(label_new_node,  edges_in_new_node);
+							std::cout << Distances << std::endl;
+						}
+					}
 				}
 
 

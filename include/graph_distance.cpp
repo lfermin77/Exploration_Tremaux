@@ -25,7 +25,7 @@ Graph_Distance::~Graph_Distance(){
 std::ostream& operator<<(std::ostream& os, Graph_Distance& Graph){
 	os << "\n";	
 	os << "Number of Nodes "<< Graph.Vertices_map.size() << "\n";
-	os << "Number of Edges "<< Graph.Vertices_map.size() << "\n";
+	os << "Number of Edges "<< Graph.Arcs_map.size()     << "\n";
 
     return os;
 }
@@ -38,7 +38,7 @@ std::ostream& operator<<(std::ostream& os, Graph_Distance& Graph){
 
 
 ///////
-void Graph_Distance::insert_first_pair_of_nodes(int label_first, int label_second, float distance){
+void Graph_Distance::insert_first_edge(int label_first, int label_second, float distance){
 	clean_class();
 	Vertex* first_vertex = new Vertex;
 	Vertex* second_vertex = new Vertex;
@@ -91,6 +91,7 @@ void Graph_Distance::insert_new_node(int label, std::vector< std::pair<int, floa
 		Arcs_map[current_arc->labels] = current_arc;
 	}
 	////
+	update_distances( label );
 }
 //////
 
@@ -124,56 +125,40 @@ void Graph_Distance::insert_new_edge(int label_1, int label_2,  float distance )
 
 
 int Graph_Distance::update_distances(	int label_start_node ){
-//	std::list <Node*> Unvisited_Nodes = Nodes; //List to work
-
 	std::unordered_map<int, Vertex*> unvisited_vertices = Vertices_map; //List to work
-
-	std::multimap< float , int > ordered_vertices;
-	for(  std::unordered_map<int, Vertex*>::iterator map_iter = Vertices_map.begin(); map_iter != Vertices_map.end(); map_iter ++){
-		int current_label = map_iter->first;
-		
-		if(current_label == label_start_node){
-			ordered_vertices.insert( std::make_pair(0,current_label) );
-		}
-		else{
-			ordered_vertices.insert( std::make_pair(std::numeric_limits<float>::infinity(),current_label) );
-		}
-	}
-	
-
-
-//	for()
-
-	
 	Vertices_map[label_start_node]->distance_in_this_iter = 0;
-	
-//	std::cout << "Minimun distace found, is  " << Minimal_Node->info.label << std::endl;
-/*
+
 	while(unvisited_vertices.size() > 0){
-		Node_iter eliminate_iter = Unvisited_Nodes.begin();
+		std::unordered_map<int, Vertex*>::iterator eliminate_iter = unvisited_vertices.begin();
+
+		//Find minimum
 		float min_distance = std::numeric_limits<float>::infinity();
-
-		for(Node_iter it = Unvisited_Nodes.begin(); it != Unvisited_Nodes.end(); it++){
-			if( ((*it)->info.distance_from_origin ) < min_distance ){
-				eliminate_iter = it;
-				min_distance = (*it)->info.distance_from_origin;
+		for(std::unordered_map<int, Vertex*>::iterator map_iter = unvisited_vertices.begin(); map_iter != unvisited_vertices.end(); map_iter ++){
+			if( map_iter->second->distance_in_this_iter < min_distance ){
+				eliminate_iter = map_iter;
+				min_distance = map_iter->second->distance_in_this_iter;
 			}
 		}
-		Minimal_Node = (*eliminate_iter);
-
-		Unvisited_Nodes.erase(eliminate_iter);
 		
-		for(int i=0; i < Minimal_Node->connected.size();i++){
-			float new_distance = Minimal_Node->info.distance_from_origin  +  Minimal_Node->connected[i].linker->info.distance;
+		Vertex* current_vertex = eliminate_iter->second;
+		unvisited_vertices.erase(eliminate_iter); //remove from unvisited
+		
 
-			if(new_distance < Minimal_Node->connected[i].to->info.distance_from_origin  ){
-				Minimal_Node->connected[i].to->info.distance_from_origin = new_distance;
-				Minimal_Node->connected[i].to->predecesor = Minimal_Node;
+		for(int i=0; i < current_vertex->connections.size();i++){
+			float new_distance = current_vertex->distance_in_this_iter  +  current_vertex->connections[i]->distance;
+
+			int destination_label = *current_vertex->connections[i]->labels.begin();
+			if(destination_label == current_vertex->label)   destination_label = *current_vertex->connections[i]->labels.rbegin();
+
+			if(new_distance < Vertices_map[destination_label] -> distance_in_this_iter ){
+				Vertices_map[destination_label] -> distance_in_this_iter = new_distance;
 			}
+			//
 		}
+		//
 	}
 
-//*/
+
 	return -1;
 }
 
