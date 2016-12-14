@@ -19,8 +19,7 @@ struct Arc{
 
 struct Vertex{
 	int label;
-	float distance_in_this_iter=-1;	
-	Vertex* predecesor=NULL;	
+	float distance_in_this_iter = std::numeric_limits<float>::infinity();
 	std::vector<Arc*> connections;
 };
 
@@ -37,6 +36,7 @@ class Graph_Distance{
 	protected:
 	//functions
 	void clean_class();
+	int update_distances(	int label_new_node );
 	
 	// variables
 	std::unordered_map<int, Vertex*> Vertices_map;

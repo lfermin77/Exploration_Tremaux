@@ -1941,8 +1941,23 @@ std::map<int, std::set<int> > RegionGraph::extract_simplified_graph(){
 	
 	
 	
+float RegionGraph::get_edge_distance(int vertex_1, int vertex_2){
+	Node* node_from = Nodes_Map[vertex_1];
+	std::vector<Connections> links = node_from->connected;
+	float distance=-1;
+//*
+	for(std::vector<Connections>::iterator conn_iter = links.begin(); conn_iter != links.end(); conn_iter ++){
+//		Node* other_node =(*conn_iter).to;
+		int label_other = conn_iter->to->info.label;
+		if(vertex_2 == label_other){
+			distance = conn_iter->linker->info.distance;
+		}
+	}
+	//*/
 	
-	
+
+	return distance;
+}
 	
 	
 	

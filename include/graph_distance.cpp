@@ -77,7 +77,7 @@ void Graph_Distance::insert_new_node(int label, std::vector< std::pair<int, floa
 	Vertices_map[label]  = vertex_new;
 	
 	vertex_new->label=label;
-	
+	//Insert all edges
 	for(int i=0; i < Connections_label_distance.size(); i++){
 		Arc* current_arc = new Arc;
 		int TO_label = Connections_label_distance[i].first;
@@ -121,6 +121,61 @@ void Graph_Distance::insert_new_edge(int label_1, int label_2,  float distance )
 }
 
 
+
+
+int Graph_Distance::update_distances(	int label_start_node ){
+//	std::list <Node*> Unvisited_Nodes = Nodes; //List to work
+
+	std::unordered_map<int, Vertex*> unvisited_vertices = Vertices_map; //List to work
+
+	std::multimap< float , int > ordered_vertices;
+	for(  std::unordered_map<int, Vertex*>::iterator map_iter = Vertices_map.begin(); map_iter != Vertices_map.end(); map_iter ++){
+		int current_label = map_iter->first;
+		
+		if(current_label == label_start_node){
+			ordered_vertices.insert( std::make_pair(0,current_label) );
+		}
+		else{
+			ordered_vertices.insert( std::make_pair(std::numeric_limits<float>::infinity(),current_label) );
+		}
+	}
+	
+
+
+//	for()
+
+	
+	Vertices_map[label_start_node]->distance_in_this_iter = 0;
+	
+//	std::cout << "Minimun distace found, is  " << Minimal_Node->info.label << std::endl;
+/*
+	while(unvisited_vertices.size() > 0){
+		Node_iter eliminate_iter = Unvisited_Nodes.begin();
+		float min_distance = std::numeric_limits<float>::infinity();
+
+		for(Node_iter it = Unvisited_Nodes.begin(); it != Unvisited_Nodes.end(); it++){
+			if( ((*it)->info.distance_from_origin ) < min_distance ){
+				eliminate_iter = it;
+				min_distance = (*it)->info.distance_from_origin;
+			}
+		}
+		Minimal_Node = (*eliminate_iter);
+
+		Unvisited_Nodes.erase(eliminate_iter);
+		
+		for(int i=0; i < Minimal_Node->connected.size();i++){
+			float new_distance = Minimal_Node->info.distance_from_origin  +  Minimal_Node->connected[i].linker->info.distance;
+
+			if(new_distance < Minimal_Node->connected[i].to->info.distance_from_origin  ){
+				Minimal_Node->connected[i].to->info.distance_from_origin = new_distance;
+				Minimal_Node->connected[i].to->predecesor = Minimal_Node;
+			}
+		}
+	}
+
+//*/
+	return -1;
+}
 
 
 
