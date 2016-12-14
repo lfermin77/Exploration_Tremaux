@@ -71,7 +71,7 @@ class ROS_handler
 
 	std::map<int, std::set<int> > simplified_graph;
 	
-	std::map<int, std::set<int> > simplified_graph;
+
 	
 	
 	public:
