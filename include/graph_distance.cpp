@@ -78,11 +78,11 @@ void Graph_Distance::insert_first_edge(int label_first, int label_second, float 
 //////
 
 
-void Graph_Distance::insert_new_node(int label, std::vector< std::pair<int, float> > Connections_label_distance ){
+int Graph_Distance::insert_new_node(int label, std::vector< std::pair<int, float> > Connections_label_distance ){
 	std::unordered_map<int, Vertex*>::iterator found_ptr =  Vertices_map.find(label);
 	if(found_ptr != Vertices_map.end() ){
 		std::cout << "Vertex label already in graph" << std::endl;
-		return;
+		return -1;
 	}
 	
 
@@ -104,21 +104,21 @@ void Graph_Distance::insert_new_node(int label, std::vector< std::pair<int, floa
 		Arcs_map[current_arc->labels] = current_arc;
 	}
 	////
-	update_distances( label );
+	return update_distances( label );
 }
 //////
 
 
-void Graph_Distance::insert_new_edge(int label_1, int label_2,  float distance ){
+int Graph_Distance::insert_new_edge(int label_1, int label_2,  float distance ){
 	std::unordered_map<int, Vertex*>::iterator found_ptr =  Vertices_map.find(label_1);
 	if(found_ptr == Vertices_map.end() ){
 		std::cout << "Vertex 1 label NOT in graph" << std::endl;
-		return;
+		return -1;
 	}
 	found_ptr =  Vertices_map.find(label_2);
 	if(found_ptr == Vertices_map.end() ){
 		std::cout << "Vertex 2 label NOT in graph" << std::endl;
-		return;
+		return -1;
 	}
 	
 	Arc* current_arc = new Arc;
@@ -131,7 +131,7 @@ void Graph_Distance::insert_new_edge(int label_1, int label_2,  float distance )
 	
 	Arcs_map[current_arc->labels] = current_arc;
 	
-	
+	return update_distances( label_1 );
 }
 
 
@@ -180,14 +180,12 @@ int Graph_Distance::update_distances(	int label_start_node ){
 		//
 	}
 
-	update_distance_matrix(label_start_node);
-
-	return -1;
+	return update_distance_matrix(label_start_node);
 }
 
 
 
-void Graph_Distance::update_distance_matrix(int label_new_node){
+int Graph_Distance::update_distance_matrix(int label_new_node){
 	//Create rows and columns (if any)
 	for(std::unordered_map<int, Vertex*>::iterator map_iter = Vertices_map.begin(); map_iter != Vertices_map.end(); map_iter ++){
 		
@@ -223,15 +221,45 @@ void Graph_Distance::update_distance_matrix(int label_new_node){
 		//
 	}
 	////
+	return  extract_central_vertex_label();
 	
-	return ;
 }
 
 
 
 int Graph_Distance::extract_central_vertex_label(){
-	int a=1;
-	return a;
+
+	std::unordered_map<int, float> max_dist_map;
+	
+	for(std::unordered_map<int, Vertex*>::iterator map_iter = Vertices_map.begin(); map_iter != Vertices_map.end(); map_iter ++){
+		int label_1 = map_iter->first;
+		max_dist_map[label_1] = -1;
+		
+		for(std::unordered_map<int, Vertex*>::iterator map_iter_2 = Vertices_map.begin(); map_iter_2 != Vertices_map.end(); map_iter_2 ++){
+			int label_2 = map_iter_2->first;
+			
+			int lower_label =  (label_1 >= label_2)? label_2 : label_1; 
+			int upper_label =  (lower_label == label_1)? label_2 :  label_1; 
+			
+			float distance = map_distance_matrix [lower_label][upper_label];
+			if(distance >max_dist_map[label_1]) max_dist_map[label_1]=distance;
+			
+		}
+	}
+	////
+//	std::cout << "     Largest Distances: " <<   std::endl;
+	float min_dist = std::numeric_limits<float>::infinity();
+	int central_label=-1;
+	for(std::unordered_map<int, float>::iterator map_iter = max_dist_map.begin(); map_iter != max_dist_map.end(); map_iter ++){
+//		std::cout << "     node: "<<  map_iter->first <<",  distance "<< map_iter->second <<   std::endl;
+		if(map_iter->second < min_dist){
+			central_label = map_iter->first;
+			min_dist = map_iter->second;
+		}
+	}
+//	std::cout << "     Central vertex: "<< central_label <<   std::endl;
+	
+	return central_label;
 }
 
 

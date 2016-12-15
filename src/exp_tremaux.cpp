@@ -340,12 +340,11 @@ class ROS_handler
 						
 						for(std::set<int>::iterator set_iter = new_nodes.begin(); set_iter != new_nodes.end(); set_iter ++ ){
 							int label_new_node = *set_iter;
-						std::cout << "  node from: "<<  label_new_node <<   std::endl;
 							std::vector< std::pair<int, float> > edges_in_new_node;
 							
 							std::set< std::set<int> > remaining_edges = processed_edge_set;
 							processed_edge_set.clear();
-							
+							//Find edges of the node
 							for( std::set< std::set<int> >::iterator set_set_iter = remaining_edges.begin(); set_set_iter != remaining_edges.end(); set_set_iter ++ ){ 
 								std::set<int> connection = *set_set_iter;
 								bool label_in_set = ( *connection.begin() == label_new_node) || (*connection.rbegin() == label_new_node);
@@ -355,13 +354,7 @@ class ROS_handler
 									pair_to_include.second = Tremaux_Graph.get_edge_distance(*connection.begin() , *connection.rbegin() );
 
 									pair_to_include.first =    (*connection.begin() == label_new_node)?  *connection.rbegin() : *connection.begin() ;
-						std::cout << "     node to: "<<  pair_to_include.first <<" distance "<< pair_to_include.second <<   std::endl;
-									/*
-									pair_to_include.first = *connection.begin();									
-									if( *connection.begin() == label_new_node){
-										pair_to_include.first = *connection.rbegin();
-									}
-									//*/
+
 									if(pair_to_include.first < label_new_node)      edges_in_new_node.push_back(pair_to_include);
 									else  processed_edge_set.insert(connection);
 								}

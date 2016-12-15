@@ -30,17 +30,18 @@ class Graph_Distance{
 	~Graph_Distance();
 	friend std::ostream& operator<<(std::ostream& os, Graph_Distance& Graph);	
 	void insert_first_edge(int label_first, int label_second, float distance);
-	void insert_new_node(int label, std::vector< std::pair<int, float> > Connections_label_distance);
-	void insert_new_edge(int label_1, int label_2,  float distance );
-	int extract_central_vertex_label();
+	int insert_new_node(int label, std::vector< std::pair<int, float> > Connections_label_distance);
+	int insert_new_edge(int label_1, int label_2,  float distance );
+
 	
 	
 	protected:
 	//functions
 	void clean_class();
 	int update_distances(	int label_new_node );
-	void update_distance_matrix(int label_new_node);
-	
+	int update_distance_matrix(int label_new_node);
+	int extract_central_vertex_label();
+		
 	// variables
 	std::unordered_map<int, Vertex*>   Vertices_map;
 	std::map<std::set<int>, Arc*>      Arcs_map;
