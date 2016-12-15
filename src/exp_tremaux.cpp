@@ -251,6 +251,8 @@ class ROS_handler
 				//Compare graphs
 
 				{
+					int central_vertex_label;
+					
 					std::set< std::set<int> > new_edges;
 					std::set<int> new_nodes;
 					for(std::map<int, std::set<int> >::iterator graph_iter = new_graph.begin(); graph_iter != new_graph.end(); graph_iter ++){
@@ -295,6 +297,7 @@ class ROS_handler
 					}
 					
 					std::set< std::set<int> > processed_edge_set = new_edges;
+					/*
 					if(new_graph.size() == -1){
 						std::cout << "  FIRST GRAPH "<< std::endl;
 						float edge_distance_1 = Tremaux_Graph.get_edge_distance(0,1);
@@ -319,7 +322,7 @@ class ROS_handler
 								if( *connection.begin() == label_new_node){
 									pair_to_include.first = *connection.rbegin();
 								}
-								//*/
+								//*
 								edges_in_new_node.push_back(pair_to_include);
 							}
 							else{
@@ -335,8 +338,8 @@ class ROS_handler
 						processed_edge_set.clear();
 						new_nodes.clear();
 					}
+					//*/
 					if(new_nodes.size() > 0){
-
 						
 						for(std::set<int>::iterator set_iter = new_nodes.begin(); set_iter != new_nodes.end(); set_iter ++ ){
 							int label_new_node = *set_iter;
@@ -365,15 +368,25 @@ class ROS_handler
 							}
 
 							//
-							Distances.insert_new_node(label_new_node,  edges_in_new_node);
+							central_vertex_label = Distances.insert_new_node(label_new_node,  edges_in_new_node);
 							std::cout << Distances << std::endl;
 						}
 					}
 //					std::cout << "  size of remaining edges: "<< processed_edge_set.size()  <<   std::endl;
 					if(processed_edge_set.size() !=0){
 						std::cout << "  MEMORY REMAINS: "  <<   std::endl;
+						
+						for(std::set< std::set<int> >::iterator set_set_iter = processed_edge_set.begin(); set_set_iter != processed_edge_set.end(); set_set_iter ++){
+							std::set<int> connection = *set_set_iter;
+							
+							float edge_distance = Tremaux_Graph.get_edge_distance(*connection.begin() , *connection.rbegin() );
+							
+							central_vertex_label = Distances.insert_new_edge(*connection.begin() , *connection.rbegin(),  edge_distance );
+						}
 
 					}
+					std::cout << "  Central Vertex Label: "  <<   central_vertex_label << std::endl;
+					////
 				}
 
 
