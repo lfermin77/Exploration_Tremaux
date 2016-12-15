@@ -32,15 +32,25 @@ class Graph_Distance{
 	void insert_first_edge(int label_first, int label_second, float distance);
 	void insert_new_node(int label, std::vector< std::pair<int, float> > Connections_label_distance);
 	void insert_new_edge(int label_1, int label_2,  float distance );
+	int extract_central_vertex_label();
+	
 	
 	protected:
 	//functions
 	void clean_class();
 	int update_distances(	int label_new_node );
+	void update_distance_matrix(int label_new_node);
 	
 	// variables
 	std::unordered_map<int, Vertex*>   Vertices_map;
 	std::map<std::set<int>, Arc*>      Arcs_map;
 	
 	std::vector <std::vector <float> > distance_matrix;
+
+	std::unordered_map <int, std::unordered_map <int,float> >  map_distance_matrix;
 };
+
+
+
+
+

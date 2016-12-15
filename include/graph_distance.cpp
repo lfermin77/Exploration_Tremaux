@@ -27,6 +27,19 @@ std::ostream& operator<<(std::ostream& os, Graph_Distance& Graph){
 	os << "Number of Nodes "<< Graph.Vertices_map.size() << "\n";
 	os << "Number of Edges "<< Graph.Arcs_map.size()     << "\n";
 
+/*
+	for(std::unordered_map <int, std::unordered_map <int,float> >::iterator map_map_iter = Graph.map_distance_matrix.begin(); map_map_iter != Graph.map_distance_matrix.end(); map_map_iter ++){
+		int label_1 = map_map_iter->first;
+		std::unordered_map <int,float>  sub_map = map_map_iter->second;
+		for(std::unordered_map <int,float>::iterator  map_iter = sub_map.begin(); map_iter != sub_map.end(); map_iter ++){
+			int label_2 = map_iter->first;
+			float current_distance = map_iter->second;
+			os << "("<< label_1<<","<<label_2<<")-> "<<  current_distance << ";\t";
+		}		
+	}
+//*/
+
+
     return os;
 }
 
@@ -125,8 +138,17 @@ void Graph_Distance::insert_new_edge(int label_1, int label_2,  float distance )
 
 
 int Graph_Distance::update_distances(	int label_start_node ){
+	
+
+	
 	std::unordered_map<int, Vertex*> unvisited_vertices = Vertices_map; //List to work
+	// Set initial conditions
+	for(std::unordered_map<int, Vertex*>::iterator map_iter = unvisited_vertices.begin(); map_iter != unvisited_vertices.end(); map_iter ++){
+		map_iter->second->distance_in_this_iter = std::numeric_limits<float>::infinity();
+	}
+
 	Vertices_map[label_start_node]->distance_in_this_iter = 0;
+	unvisited_vertices[label_start_node]->distance_in_this_iter = 0;
 
 	while(unvisited_vertices.size() > 0){
 		std::unordered_map<int, Vertex*>::iterator eliminate_iter = unvisited_vertices.begin();
@@ -143,7 +165,7 @@ int Graph_Distance::update_distances(	int label_start_node ){
 		Vertex* current_vertex = eliminate_iter->second;
 		unvisited_vertices.erase(eliminate_iter); //remove from unvisited
 		
-
+		//Expand the edges
 		for(int i=0; i < current_vertex->connections.size();i++){
 			float new_distance = current_vertex->distance_in_this_iter  +  current_vertex->connections[i]->distance;
 
@@ -158,9 +180,61 @@ int Graph_Distance::update_distances(	int label_start_node ){
 		//
 	}
 
+	update_distance_matrix(label_start_node);
 
 	return -1;
 }
+
+
+
+void Graph_Distance::update_distance_matrix(int label_new_node){
+	//Create rows and columns (if any)
+	for(std::unordered_map<int, Vertex*>::iterator map_iter = Vertices_map.begin(); map_iter != Vertices_map.end(); map_iter ++){
+		
+		int lower_label =  (label_new_node >= map_iter->first)? map_iter->first : label_new_node; 
+		int upper_label =  (lower_label == label_new_node)? map_iter->first :  label_new_node; 
+
+		map_distance_matrix [lower_label][upper_label] = map_iter->second->distance_in_this_iter;		
+	}
+	
+	
+	//Update the rest
+	for(std::unordered_map <int, std::unordered_map <int,float> >::iterator map_map_iter = map_distance_matrix.begin(); map_map_iter != map_distance_matrix.end(); map_map_iter ++){
+		int lower_label = map_map_iter->first;
+		std::unordered_map <int,float>  sub_map = map_map_iter->second;
+		
+		for(std::unordered_map <int,float>::iterator  map_iter = sub_map.begin(); map_iter != sub_map.end(); map_iter ++){
+			int upper_label = map_iter->first;
+			float current_distance = map_iter->second;
+
+			int first_low  =  (label_new_node >= lower_label)? lower_label : label_new_node; 
+			int first_high =  (lower_label == label_new_node)? lower_label :  label_new_node; 
+			
+			int second_low  =  (label_new_node >= upper_label)? upper_label : label_new_node; 
+			int second_high =  (lower_label == label_new_node)? upper_label :  label_new_node; 
+
+			
+			float distance_alternative = map_distance_matrix [first_low][first_high]  +   map_distance_matrix [second_low][second_high];
+			if (distance_alternative < map_distance_matrix [lower_label][upper_label]){
+				map_distance_matrix [lower_label][upper_label]  =  distance_alternative;
+			}
+			//
+		}				
+		//
+	}
+	////
+	
+	return ;
+}
+
+
+
+int Graph_Distance::extract_central_vertex_label(){
+	int a=1;
+	return a;
+}
+
+
 
 
 

@@ -293,7 +293,9 @@ class ROS_handler
 						std::set<int> connection = *set_set_iter;
 						std::cout << "  New Edges: "<<*connection.begin() << " with " <<  *connection.rbegin()  <<   std::endl;
 					}
-					if(new_graph.size() == 3){
+					
+					std::set< std::set<int> > processed_edge_set = new_edges;
+					if(new_graph.size() == -1){
 						std::cout << "  FIRST GRAPH "<< std::endl;
 						float edge_distance_1 = Tremaux_Graph.get_edge_distance(0,1);
 						Distances.insert_first_edge(0,1, Tremaux_Graph.get_edge_distance(0,1) );
@@ -302,7 +304,8 @@ class ROS_handler
 						
 						int label_new_node=2;
 						std::vector< std::pair<int, float> > edges_in_new_node;
-						std::set< std::set<int> > remaining_edges;
+//						std::set< std::set<int> > remaining_edges;
+						processed_edge_set.clear();
 						
 						for( std::set< std::set<int> >::iterator set_set_iter = new_edges.begin(); set_set_iter != new_edges.end(); set_set_iter ++ ){ 
 							std::set<int> connection = *set_set_iter;
@@ -310,16 +313,17 @@ class ROS_handler
 								std::pair<int, float> pair_to_include;
 								pair_to_include.second = Tremaux_Graph.get_edge_distance(*connection.begin() , *connection.rbegin() );
 								
+								pair_to_include.first =(*connection.begin() == label_new_node) ? *connection.rbegin() : *connection.begin() ;
+								/*
+								pair_to_include.first = *connection.begin();								
 								if( *connection.begin() == label_new_node){
 									pair_to_include.first = *connection.rbegin();
 								}
-								else{
-									pair_to_include.first = *connection.begin();
-								}
+								//*/
 								edges_in_new_node.push_back(pair_to_include);
 							}
 							else{
-								remaining_edges.insert(connection);
+								processed_edge_set.insert(connection);
 							}
 						//
 						}
@@ -327,35 +331,55 @@ class ROS_handler
 						
 						Distances.insert_new_node(label_new_node,  edges_in_new_node);
 						std::cout << Distances << std::endl;
+
+						processed_edge_set.clear();
+						new_nodes.clear();
 					}
 					if(new_nodes.size() > 0){
+
+						
 						for(std::set<int>::iterator set_iter = new_nodes.begin(); set_iter != new_nodes.end(); set_iter ++ ){
 							int label_new_node = *set_iter;
+						std::cout << "  node from: "<<  label_new_node <<   std::endl;
 							std::vector< std::pair<int, float> > edges_in_new_node;
-							std::set< std::set<int> > remaining_edges;
 							
-							for( std::set< std::set<int> >::iterator set_set_iter = new_edges.begin(); set_set_iter != new_edges.end(); set_set_iter ++ ){ 
+							std::set< std::set<int> > remaining_edges = processed_edge_set;
+							processed_edge_set.clear();
+							
+							for( std::set< std::set<int> >::iterator set_set_iter = remaining_edges.begin(); set_set_iter != remaining_edges.end(); set_set_iter ++ ){ 
 								std::set<int> connection = *set_set_iter;
 								bool label_in_set = ( *connection.begin() == label_new_node) || (*connection.rbegin() == label_new_node);
 
 								if(  label_in_set ){
 									std::pair<int, float> pair_to_include;
 									pair_to_include.second = Tremaux_Graph.get_edge_distance(*connection.begin() , *connection.rbegin() );
+
+									pair_to_include.first =    (*connection.begin() == label_new_node)?  *connection.rbegin() : *connection.begin() ;
+						std::cout << "     node to: "<<  pair_to_include.first <<" distance "<< pair_to_include.second <<   std::endl;
+									/*
 									pair_to_include.first = *connection.begin();									
 									if( *connection.begin() == label_new_node){
 										pair_to_include.first = *connection.rbegin();
 									}
+									//*/
 									if(pair_to_include.first < label_new_node)      edges_in_new_node.push_back(pair_to_include);
+									else  processed_edge_set.insert(connection);
 								}
 								else{
-									remaining_edges.insert(connection);
+									processed_edge_set.insert(connection);
 								}
-							//
+								//
 							}
+
 							//
 							Distances.insert_new_node(label_new_node,  edges_in_new_node);
 							std::cout << Distances << std::endl;
 						}
+					}
+//					std::cout << "  size of remaining edges: "<< processed_edge_set.size()  <<   std::endl;
+					if(processed_edge_set.size() !=0){
+						std::cout << "  MEMORY REMAINS: "  <<   std::endl;
+
 					}
 				}
 
