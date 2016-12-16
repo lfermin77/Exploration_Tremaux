@@ -374,7 +374,7 @@ class ROS_handler
 					}
 //					std::cout << "  size of remaining edges: "<< processed_edge_set.size()  <<   std::endl;
 					if(processed_edge_set.size() !=0){
-						std::cout << "  MEMORY REMAINS: "  <<   std::endl;
+//						std::cout << "  MEMORY REMAINS: "  <<   std::endl;
 						
 						for(std::set< std::set<int> >::iterator set_set_iter = processed_edge_set.begin(); set_set_iter != processed_edge_set.end(); set_set_iter ++){
 							std::set<int> connection = *set_set_iter;
@@ -385,7 +385,7 @@ class ROS_handler
 						}
 
 					}
-					std::cout << "  Central Vertex Label: "  <<   central_vertex_label << std::endl;
+					std::cout << "  CENTRAL VERTEX: "  <<   central_vertex_label << std::endl;
 					////
 				}
 
