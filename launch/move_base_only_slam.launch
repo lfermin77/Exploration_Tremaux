@@ -1,0 +1,8 @@
+<launch>
+  <master auto="start"/>
+  <param name="/use_sim_time" value="true"/>
+  
+  <node pkg="cg_mrslam" type="sr_slam_map" name="graph_slam" args="-minInliers 4 -windowLoopClosure 8 ">
+  </node>
+
+</launch>
