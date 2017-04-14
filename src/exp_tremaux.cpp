@@ -199,7 +199,8 @@ class ROS_handler
 
 			try
 			{
-			  temporal_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_32FC1);
+//			  temporal_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_32FC1);
+			  temporal_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_8UC3);
 			}
 			catch (cv_bridge::Exception& e)
 			{
@@ -307,7 +308,8 @@ class ROS_handler
 //				grad = image_tagged;
 			}
 			
-			cv_ptr->encoding = sensor_msgs::image_encodings::TYPE_32FC1;			grad.convertTo(grad, CV_32F);
+//			cv_ptr->encoding = sensor_msgs::image_encodings::TYPE_32FC1;			grad.convertTo(grad, CV_32F);
+			cv_ptr->encoding = cv_ptr->encoding = "bgr8";			grad.convertTo(grad, CV_32F);
 			grad.copyTo(cv_ptr->image);////most important
 					
 		}
