@@ -1,5 +1,6 @@
 //ROS
 #include "ros/ros.h"
+#include "ros/package.h"
 #include "nav_msgs/GetMap.h"
 
 #include "nav_msgs/Odometry.h"
@@ -99,8 +100,16 @@ class ROS_handler
 			cum_time=0;
 			first_pose=NULL;
 			
+			std::string path_exploration =ros::package::getPath ("exp_tremaux");
+			
+			path_exploration += "results/Results.txt";
+
+			std::cout << "Path "<< path_exploration << std::endl<< std::endl<< std::endl;
+			
 //			myfile.open("/home/unizar/ROS_Indigo/catkin_ws/src/Exploration_Tremaux/results/Results.txt");    //casa
-			myfile.open("/home/leonardo/ROS_Indigo/catkin_ws/src/Exploration_Tremaux/results/Results.txt");  //uni
+//			myfile.open("/home/leonardo/ROS_Indigo/catkin_ws/src/Exploration_Tremaux/results/Results.txt");  //uni
+			myfile.open(path_exploration);  
+
 			myfile << "Iteration, Processing_Time, Distance, Area, LoopClosures, Current Error \n";
 		}
 

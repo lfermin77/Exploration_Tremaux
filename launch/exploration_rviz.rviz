@@ -240,7 +240,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /tagged_image
+      Image Topic: /tagged_image_color
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -255,7 +255,7 @@ Visualization Manager:
       Marker Topic: /SLAM_Graph
       Name: Marker
       Namespaces:
-        {}
+        my_namespace: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -342,5 +342,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1304
-  X: 91
+  X: 81
   Y: 14
