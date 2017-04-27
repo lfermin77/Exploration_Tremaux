@@ -87,8 +87,8 @@ class ROS_handler
 			
 			Uncertainty_sub_ = n.subscribe("query_Uncertainty", 10, &ROS_handler::UncertaintyCallback, this);
 			pose_array_pub_  = n.advertise<geometry_msgs::PoseArray>("query_Poses", 10);
-			goal_pub_	  	 = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 10);
-//			goal_pub_	  	 = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal_2", 10);
+//			goal_pub_	  	 = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 10);
+			goal_pub_	  	 = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal_2", 10);
 			
 			counter =0;
 			map_received = path_received = graph_received = tagged_image_received = GT_received = false;
