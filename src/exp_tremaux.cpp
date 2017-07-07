@@ -32,6 +32,9 @@ class ROS_handler
 	image_transport::Subscriber image_sub_;
 	image_transport::Publisher image_pub_;	
 	cv_bridge::CvImagePtr cv_ptr;
+	
+	cv_bridge::CvImagePtr cv_ptr_color;
+	std::vector <cv::Vec3b> colormap;
 		
 	std::string mapname_;
 	ros::Subscriber map_sub_;	
@@ -78,6 +81,11 @@ class ROS_handler
 
 			timer = n.createTimer(ros::Duration(0.5), &ROS_handler::metronomeCallback, this);
 			image_pub_ = it_.advertise("/processed_image", 1);
+			cv_ptr_color.reset (new cv_bridge::CvImage);
+//			cv_ptr_color->encoding = "mono8";
+			cv_ptr_color->encoding = "bgr8";
+			
+			
 			image_sub_ = it_.subscribe("tagged_image", 1,  &ROS_handler::imageCallback, this);
 			
 			markers_pub_     =  n.advertise<visualization_msgs::Marker>( "Exploration_Choices", 10 );
@@ -89,6 +97,24 @@ class ROS_handler
 			pose_array_pub_  = n.advertise<geometry_msgs::PoseArray>("query_Poses", 10);
 			goal_pub_	  	 = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 10);
 //			goal_pub_	  	 = n.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal_2", 10);
+			
+			
+			
+			
+			
+			cv::Vec3b black(208, 208, 208);
+			colormap.push_back(black);
+			for(int i=0;i<= 500; i++){
+				cv::Vec3b color(rand() % 255,rand() % 255,rand() % 255);
+				colormap.push_back(color);
+			}
+			
+			
+			
+			
+			
+			
+			
 			
 			counter =0;
 			map_received = path_received = graph_received = tagged_image_received = GT_received = false;
@@ -224,8 +250,8 @@ class ROS_handler
 			bool data_ready = map_received & path_received & graph_received & tagged_image_received & GT_received;	
 			cv::Mat grad;
 			
-			
-
+			grad = image_tagged;
+//			cv_ptr->encoding = cv_ptr->encoding = "bgr8";			grad.convertTo(grad, CV_32F);
 
 			if(data_ready){
 				cv::Mat occupancy_image = image_map.clone();
@@ -303,7 +329,7 @@ class ROS_handler
 				publish_markers(Tremaux_Graph.collect_all_frontiers());
 				
 				cv::Mat edge_image = Tremaux_Graph.segment_current_frontier ( image_tagged );
-				grad = edge_image.clone();
+//				grad = edge_image.clone();
 
 				
 				data_ready = map_received = path_received = graph_received = tagged_image_received = GT_received = false;
@@ -313,11 +339,11 @@ class ROS_handler
 				
 			}
 			else{
-//				grad = image_tagged;
+				grad = image_tagged;
 			}
 			
 //			cv_ptr->encoding = sensor_msgs::image_encodings::TYPE_32FC1;			grad.convertTo(grad, CV_32F);
-			cv_ptr->encoding = cv_ptr->encoding = "bgr8";			grad.convertTo(grad, CV_32F);
+			cv_ptr->encoding = "bgr8";			grad.convertTo(grad, CV_32F);
 			grad.copyTo(cv_ptr->image);////most important
 					
 		}
@@ -396,6 +422,83 @@ class ROS_handler
 
 		typedef std::map < std::set<int> , std::vector<cv::Point>   > edge_points_mapper;
 
+	cv::Mat paint_image_colormap(cv::Mat image_in, std::vector <cv::Vec3b> color_vector){
+
+
+
+		cv::Mat image_float = cv::Mat::zeros(image_in.size(), CV_8UC3);
+
+
+
+		for(int i=0; i < image_in.rows; i++){
+			for(int j=0;j< image_in.cols; j++){
+				int color_index = image_in.at<uchar>(i,j);
+				image_float.at<cv::Vec3b>(i,j) = color_vector[color_index];
+			}
+		}
+		
+
+		cv::flip(image_float,image_float,0);
+		/*
+//		std::cerr<<"Stable.Region_centroid.size()"<<Stable.Region_centroid.size()<<std::endl;
+
+		std::cerr << "Current edges " << Stable.diagonal_connections.size() << std::endl;
+		
+		//*
+		for(int i=0;i < Stable.diagonal_centroid.size();i++){
+			int region_from =*(Stable.diagonal_connections[i].begin() );
+			int region_to =*(Stable.diagonal_connections[i].rbegin() );
+			
+			cv::Point Start_link = Stable.Region_centroid[region_from];
+			cv::Point End_link = Stable.Region_centroid[region_to];
+
+			std::cerr << "    from "<<region_from << ", to " << region_to << std::endl;
+			
+			cv::line( image_float, Start_link, Stable.diagonal_centroid[i], cv::Scalar( 0, 255, 0 ), 3, 8);
+			cv::line( image_float, Stable.diagonal_centroid[i], End_link, cv::Scalar( 0, 255, 0 ), 3, 8);
+			
+		}
+		//
+		std::cerr << "Current frontier " << Stable.region_frontier.size() << std::endl;
+		
+		for(int i=0;i < Stable.region_frontier.size();i++){
+			int region = Stable.region_frontier[i];
+			
+			cv::Point Start_link = Stable.Region_centroid[region];
+			cv::Point End_link = Stable.center_of_frontier[i];
+
+			std::cerr << "    from "<<region << std::endl;
+			std::cerr << "    Start_link "<<Start_link << std::endl;
+			std::cerr << "    End_link "<<End_link << std::endl;
+			
+			cv::line( image_float, Start_link, End_link, cv::Scalar( 0, 0, 255 ), 3, 8);
+
+			
+		}
+
+
+
+
+
+
+		for(int i = 0; i < Stable.Region_centroid.size();i++){
+			cv::Point flip_centroid;
+			flip_centroid.x = Stable.Region_centroid[i].x;
+			flip_centroid.y = Stable.image_size.height - Stable.Region_centroid[i].y;
+			
+//			circle( image_float,flip_centroid,5,cv::Scalar(0, 255, 0),-1,8);
+			circle( image_float,Stable.Region_centroid[i],6,cv::Scalar(0, 255, 0),-1,8);
+			circle( image_float,Stable.Region_centroid[i],3,cv::Scalar(0, 0, 255),-1,8);
+		 }
+		
+		
+		//*/
+		
+		
+		cv::flip(image_float,image_float,0);
+		
+		return image_float;
+	}
 
 
 
