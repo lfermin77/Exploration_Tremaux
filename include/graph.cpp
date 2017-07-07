@@ -1300,6 +1300,174 @@ int RegionGraph::connect_inside_region_greedy( geometry_msgs::PoseStamped& pose_
 }
 
 
+std::vector<std::complex<int> > RegionGraph::extract_region_node_centers(){
+	std::vector<std::complex<double> > positions;
+	std::vector<std::complex<int> > pixel_positions;
+		
+//	std::cerr << "Node positions "<< std::endl;
+	for(RegionNodeMapper::iterator node_iter = Region_Nodes_Map.begin();  node_iter != Region_Nodes_Map.end(); node_iter++){
+		Region_Node* current_region = (*node_iter).second;
+		if(current_region->id != -1){
+			positions.push_back( current_region->Node_Center->info.position  );
+//			std::cerr << "   Node "<< current_region->id <<": ( "<<  current_region->Node_Center->info.position.real() <<" , "<< current_region->Node_Center->info.position.imag() << " )" << std::endl;
+			
+//			double x = current_point.x * image_info.resolution + image_info.origin.position.x;
+//			double y = (image_info.height - current_point.y) * image_info.resolution + image_info.origin.position.y;
+			
+			int pixel_x = (current_region->Node_Center->info.position.real() - image_info.origin.position.x)/image_info.resolution;
+			int pixel_y = image_info.height -  (current_region->Node_Center->info.position.imag() - image_info.origin.position.y)/image_info.resolution;
+			
+			if(current_region->nodes_inside.size() ==0){
+				cv::Moments mu = cv::moments(current_region->contour);
+				cv::Point midle_point( mu.m10/mu.m00 , mu.m01/mu.m00 );
+				std::complex<int> midle_pixel(midle_point.x, midle_point.y);
+				pixel_positions.push_back(midle_pixel);
+				
+				double x = midle_point.x * image_info.resolution + image_info.origin.position.x;
+				double y = (image_info.height - midle_point.y) * image_info.resolution + image_info.origin.position.y;
+		
+				std::complex<double> new_center_point(x,y);
+				
+//				current_region->Node_Center->info.position = new_center_point;
+
+				
+			}
+			else{
+				std::complex<int> transformed_point(pixel_x,pixel_y);
+				pixel_positions.push_back(transformed_point);
+			}
+			
+				
+			
+//			std::cerr << "   Node Pixel "<< current_region->id <<": ( "<<  pixel_x <<" , "<< pixel_y << " )" << std::endl;
+			
+
+		}
+		
+	}
+	
+	
+	
+	return pixel_positions;
+}
+
+
+int RegionGraph::extract_regions_edges(std::vector<std::complex<int> >* pixel_from_vec, std::vector<std::complex<int> >* pixel_to_vec, std::vector<int>* traverse_code){
+
+
+	 for(RegionEdgeMapper::iterator region_edge_iter =  Region_Edges_Map.begin();  region_edge_iter != Region_Edges_Map.end(); region_edge_iter++){
+		 Region_Edge* current_edge = (*region_edge_iter).second;		 
+		 
+		 Region_Node* From_region = current_edge->First_Region;
+		 Region_Node* To_region = current_edge->Second_Region;
+		std::cerr << "    from "<<From_region->id << ", to " << To_region->id << std::endl;
+
+		int pixel_from_x = (From_region->Node_Center->info.position.real() - image_info.origin.position.x)/image_info.resolution;
+		int pixel_from_y = image_info.height -  (From_region->Node_Center->info.position.imag() - image_info.origin.position.y)/image_info.resolution;
+		std::complex<int>  pixel_from(pixel_from_x, pixel_from_y);
+		
+		if(From_region->nodes_inside.size() ==0){
+			cv::Moments mu = cv::moments(From_region->contour);
+			cv::Point midle_point( mu.m10/mu.m00 , mu.m01/mu.m00 );
+			std::complex<int> midle_pixel(midle_point.x, midle_point.y);
+			pixel_from=midle_pixel;
+			std::cerr << "    from "<<From_region->id << " empty"  << std::endl;
+		}
+
+		int pixel_to_x = (To_region->Node_Center->info.position.real() - image_info.origin.position.x)/image_info.resolution;
+		int pixel_to_y = image_info.height -  (To_region->Node_Center->info.position.imag() - image_info.origin.position.y)/image_info.resolution;
+		std::complex<int>  pixel_to(pixel_to_x, pixel_to_y);		
+		if(To_region->nodes_inside.size() ==0){
+			cv::Moments mu = cv::moments(To_region->contour);
+			cv::Point midle_point( mu.m10/mu.m00 , mu.m01/mu.m00 );
+			std::complex<int> midle_pixel(midle_point.x, midle_point.y);
+			pixel_to=midle_pixel;
+			std::cerr << "    to "<<From_region->id << " empty"  << std::endl;
+		}
+
+//		std::vector<cv::Point> pixel_frontier = current_edge->frontier;
+//current_edge->frontier.size() >1 && 
+
+		if(From_region->id !=-1 && To_region->id !=-1  ){
+//			pixel_from_vec->push_back(pixel_from);			pixel_to_vec->push_back(pixel_to);
+
+//			std::cerr << "    valid edge "<<std::endl;		
+			float avg_x=0, avg_y=0;
+			for(int i=0;i<current_edge->frontier.size();i++){
+				avg_x+=current_edge->frontier[i].x;
+				avg_y+=current_edge->frontier[i].y;
+			}
+/*
+				cv::Moments mu = cv::moments(current_edge->frontier);
+				cv::Point midle_point( mu.m10/mu.m00 , mu.m01/mu.m00 );
+				std::complex<int> midle_pixel(midle_point.x, midle_point.y);
+				*/
+				std::complex<int> midle_pixel(avg_x/current_edge->frontier.size(), avg_y/current_edge->frontier.size() );				
+//				std::cerr << "    medio "<< midle_pixel.real() << " ,"  << midle_pixel.imag() << std::endl;
+/*
+			std::vector< std::vector< cv::Point> > pixel_frontier_segmented = current_edge->segmented_frontier;
+
+			for(int i=0; i<pixel_frontier_segmented.size();i++){
+				
+				cv::Moments mu = cv::moments(pixel_frontier_segmented[i]);
+				cv::Point midle_point( mu.m10/mu.m00 , mu.m01/mu.m00 );
+				std::complex<int> midle_pixel(midle_point.x, midle_point.y);
+				*/
+				//*
+
+				std::set< Edge*> set_of_edges_in = From_region->marker_in;
+				std::vector< Edge*> slam_vertices = current_edge->Edges_in_border;
+				
+				bool out_edge = false;
+				bool in_edge  = false;
+				for(std::vector< Edge*>::iterator edge_iter = slam_vertices.begin(); edge_iter != slam_vertices.end(); edge_iter++){ 
+					Edge* current_slam_edge = *edge_iter;
+					int from_region= current_slam_edge->from->info.region_label;
+					int to_region= current_slam_edge->to->info.region_label;
+					std::cerr << "       inside from "<<from_region << " to "  << to_region << std::endl;
+					if(from_region == From_region->id)
+						out_edge=true;
+					else	
+						in_edge=true;
+				}
+				
+				pixel_from_vec->push_back(pixel_from);
+				pixel_to_vec->push_back(midle_pixel);
+				if(out_edge)
+					traverse_code->push_back(1);
+				else
+					traverse_code->push_back(0);
+					
+					
+				
+				
+				pixel_from_vec->push_back(midle_pixel);
+				pixel_to_vec->push_back(pixel_to);
+				if(in_edge)
+					traverse_code->push_back(1);
+				else
+					traverse_code->push_back(0);
+				
+				//*/
+			 //}
+		 }
+	 }
+
+
+	return 1;
+}
+
+
+int RegionGraph::extract_edges_contour( std::vector<cv::Point>   &out_edges){
+	
+	for(RegionEdgeMapper::iterator region_edge_iter =  Region_Edges_Map.begin();  region_edge_iter != Region_Edges_Map.end(); region_edge_iter++){
+		Region_Edge* current_edge = (*region_edge_iter).second;		 
+		for(int i=0; i < current_edge->frontier.size()  ;i++){
+			out_edges.push_back(current_edge->frontier[i]);
+		}
+	}	
+	return 1;
+}
 
 /*
 Tremaux

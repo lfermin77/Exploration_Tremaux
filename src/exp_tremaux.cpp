@@ -250,7 +250,9 @@ class ROS_handler
 			bool data_ready = map_received & path_received & graph_received & tagged_image_received & GT_received;	
 			cv::Mat grad;
 			
-			grad = image_tagged;
+//			grad = paint_image_colormap(image_tagged, colormap);
+			
+//			grad = image_tagged;
 //			cv_ptr->encoding = cv_ptr->encoding = "bgr8";			grad.convertTo(grad, CV_32F);
 
 			if(data_ready){
@@ -335,7 +337,11 @@ class ROS_handler
 				data_ready = map_received = path_received = graph_received = tagged_image_received = GT_received = false;
 //				ground_truth.push_back(current_ground_truth);
 				std::cout<<"Ground Truth size "<< ground_truth.size() <<std::endl;
-				std::cout << std::endl << std::endl;	
+				std::cout << std::endl << std::endl;
+				
+//				std::vector<std::complex<int> > node_center_in_pixels =Tremaux_Graph.extract_region_node_centers();	
+				
+							grad = paint_image_colormap(image_tagged, colormap, &Tremaux_Graph);
 				
 			}
 			else{
@@ -343,7 +349,7 @@ class ROS_handler
 			}
 			
 //			cv_ptr->encoding = sensor_msgs::image_encodings::TYPE_32FC1;			grad.convertTo(grad, CV_32F);
-			cv_ptr->encoding = "bgr8";			grad.convertTo(grad, CV_32F);
+			cv_ptr->encoding = "bgr8";			//grad.convertTo(grad, CV_32F);
 			grad.copyTo(cv_ptr->image);////most important
 					
 		}
@@ -422,14 +428,14 @@ class ROS_handler
 
 		typedef std::map < std::set<int> , std::vector<cv::Point>   > edge_points_mapper;
 
-	cv::Mat paint_image_colormap(cv::Mat image_in, std::vector <cv::Vec3b> color_vector){
+	cv::Mat paint_image_colormap(cv::Mat image_in, std::vector <cv::Vec3b> color_vector, RegionGraph* Tremaux_Graph_Draw){
 
 
 
 		cv::Mat image_float = cv::Mat::zeros(image_in.size(), CV_8UC3);
 
 
-
+		// Color the regions
 		for(int i=0; i < image_in.rows; i++){
 			for(int j=0;j< image_in.cols; j++){
 				int color_index = image_in.at<uchar>(i,j);
@@ -437,8 +443,59 @@ class ROS_handler
 			}
 		}
 		
+		
+				// Paint Edges
+		std::vector<std::complex<int> > pixel_from_vec;
+		std::vector<std::complex<int> > pixel_to_vec;
+		std::vector<int> traverse_code;
+		
+		Tremaux_Graph_Draw->extract_regions_edges(&pixel_from_vec, &pixel_to_vec, &traverse_code);
+		std::cerr << " Size " <<pixel_from_vec.size() << std::endl;
+		
+		for(int i=0;i < pixel_from_vec.size();i++){			
+			cv::Point Start_link (pixel_from_vec[i].real(), pixel_from_vec[i].imag()   );
+			cv::Point End_link(pixel_to_vec[i].real(), pixel_to_vec[i].imag());
 
-		cv::flip(image_float,image_float,0);
+//			std::cerr << "    from "<<region_from << ", to " << region_to << std::endl;
+			
+			if(traverse_code[i]==0)
+				cv::line( image_float, Start_link, End_link, cv::Scalar( 0, 255, 0 ), 3, 8);
+			else
+				cv::line( image_float, Start_link, End_link, cv::Scalar( 0, 0, 255 ), 3, 8);
+//			cv::line( image_float, Stable.diagonal_centroid[i], End_link, cv::Scalar( 0, 255, 0 ), 3, 8);
+		}
+			
+			
+			
+
+
+		// Paint the nodes
+		std::vector<std::complex<int> > node_center_in_pixels =Tremaux_Graph_Draw->extract_region_node_centers();	
+		for(int i = 0; i < node_center_in_pixels.size();i++){
+			cv::Point flip_centroid;
+			flip_centroid.x = node_center_in_pixels[i].real();
+			flip_centroid.y = node_center_in_pixels[i].imag();
+			
+//			circle( image_float,flip_centroid,5,cv::Scalar(0, 255, 0),-1,8);
+			circle( image_float,flip_centroid,6,cv::Scalar(0, 255, 0),-1,8);
+			circle( image_float,flip_centroid,3,cv::Scalar(0, 0, 255),-1,8);
+		 }
+
+
+
+		//Paint edge contour
+		std::vector<cv::Point > edge_contour;
+		Tremaux_Graph_Draw->extract_edges_contour(edge_contour);			
+		for(int i = 0; i < edge_contour.size();i++){
+			circle( image_float,edge_contour[i],1,cv::Scalar(255,0, 0),-1,8);
+		 }
+
+//		cv::flip(image_float,image_float,0);
+		
+		
+		
+		
+		
 		/*
 //		std::cerr<<"Stable.Region_centroid.size()"<<Stable.Region_centroid.size()<<std::endl;
 
@@ -495,7 +552,7 @@ class ROS_handler
 		//*/
 		
 		
-		cv::flip(image_float,image_float,0);
+//		cv::flip(image_float,image_float,0);
 		
 		return image_float;
 	}

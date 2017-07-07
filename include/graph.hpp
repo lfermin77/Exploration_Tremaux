@@ -159,7 +159,9 @@ class RegionGraph{
 	std::complex<double> Last_node_position(){return Nodes_Map[current_node_id]->info.position;};
 	std::vector<float> extract_error_per_node(std::vector<geometry_msgs::Point>  gt_nodes, float & average);
 	
-	
+	std::vector<std::complex<int> > extract_region_node_centers();
+	int extract_regions_edges(std::vector<std::complex<int> >* pixel_from_vec, std::vector<std::complex<int> >* pixel_to_vec, std::vector<int>* traverse_code );
+	int extract_edges_contour( std::vector<cv::Point>   &out_edges);
 	
 	protected:
 	void extract_subgraph();
