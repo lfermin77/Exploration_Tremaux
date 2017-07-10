@@ -450,19 +450,21 @@ class ROS_handler
 		std::vector<int> traverse_code;
 		
 		Tremaux_Graph_Draw->extract_regions_edges(&pixel_from_vec, &pixel_to_vec, &traverse_code);
-		std::cerr << " Size " <<pixel_from_vec.size() << std::endl;
+//		std::cerr << " Size " <<pixel_from_vec.size() << std::endl;
 		
 		for(int i=0;i < pixel_from_vec.size();i++){			
 			cv::Point Start_link (pixel_from_vec[i].real(), pixel_from_vec[i].imag()   );
 			cv::Point End_link(pixel_to_vec[i].real(), pixel_to_vec[i].imag());
 
-//			std::cerr << "    from "<<region_from << ", to " << region_to << std::endl;
 			
 			if(traverse_code[i]==0)
 				cv::line( image_float, Start_link, End_link, cv::Scalar( 0, 255, 0 ), 3, 8);
-			else
+			if(traverse_code[i]==1)
 				cv::line( image_float, Start_link, End_link, cv::Scalar( 0, 0, 255 ), 3, 8);
-//			cv::line( image_float, Stable.diagonal_centroid[i], End_link, cv::Scalar( 0, 255, 0 ), 3, 8);
+			if(traverse_code[i]==2)
+				cv::line( image_float, Start_link, End_link, cv::Scalar( 128, 128, 128 ), 3, 8);
+
+
 		}
 			
 			

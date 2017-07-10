@@ -1360,7 +1360,7 @@ int RegionGraph::extract_regions_edges(std::vector<std::complex<int> >* pixel_fr
 		 
 		 Region_Node* From_region = current_edge->First_Region;
 		 Region_Node* To_region = current_edge->Second_Region;
-		std::cerr << "    from "<<From_region->id << ", to " << To_region->id << std::endl;
+//		std::cerr << "    from "<<From_region->id << ", to " << To_region->id << std::endl;
 
 		int pixel_from_x = (From_region->Node_Center->info.position.real() - image_info.origin.position.x)/image_info.resolution;
 		int pixel_from_y = image_info.height -  (From_region->Node_Center->info.position.imag() - image_info.origin.position.y)/image_info.resolution;
@@ -1371,7 +1371,7 @@ int RegionGraph::extract_regions_edges(std::vector<std::complex<int> >* pixel_fr
 			cv::Point midle_point( mu.m10/mu.m00 , mu.m01/mu.m00 );
 			std::complex<int> midle_pixel(midle_point.x, midle_point.y);
 			pixel_from=midle_pixel;
-			std::cerr << "    from "<<From_region->id << " empty"  << std::endl;
+//			std::cerr << "    from "<<From_region->id << " empty"  << std::endl;
 		}
 
 		int pixel_to_x = (To_region->Node_Center->info.position.real() - image_info.origin.position.x)/image_info.resolution;
@@ -1382,7 +1382,7 @@ int RegionGraph::extract_regions_edges(std::vector<std::complex<int> >* pixel_fr
 			cv::Point midle_point( mu.m10/mu.m00 , mu.m01/mu.m00 );
 			std::complex<int> midle_pixel(midle_point.x, midle_point.y);
 			pixel_to=midle_pixel;
-			std::cerr << "    to "<<From_region->id << " empty"  << std::endl;
+//			std::cerr << "    to "<<From_region->id << " empty"  << std::endl;
 		}
 
 //		std::vector<cv::Point> pixel_frontier = current_edge->frontier;
@@ -1424,30 +1424,37 @@ int RegionGraph::extract_regions_edges(std::vector<std::complex<int> >* pixel_fr
 					Edge* current_slam_edge = *edge_iter;
 					int from_region= current_slam_edge->from->info.region_label;
 					int to_region= current_slam_edge->to->info.region_label;
-					std::cerr << "       inside from "<<from_region << " to "  << to_region << std::endl;
+//					std::cerr << "       inside from "<<from_region << " to "  << to_region << std::endl;
 					if(from_region == From_region->id)
 						out_edge=true;
 					else	
 						in_edge=true;
 				}
-				
+				//First Link
 				pixel_from_vec->push_back(pixel_from);
 				pixel_to_vec->push_back(midle_pixel);
+				int current_code=0;
 				if(out_edge)
-					traverse_code->push_back(1);
-				else
-					traverse_code->push_back(0);
+					current_code=1;
+				if( (out_edge==false) && (in_edge==false)){
+					int a=1;
+					current_code=2;
+				}
 					
-					
+				traverse_code->push_back(current_code);
 				
-				
+				//Second Link
+				current_code=0;
 				pixel_from_vec->push_back(midle_pixel);
 				pixel_to_vec->push_back(pixel_to);
 				if(in_edge)
-					traverse_code->push_back(1);
-				else
-					traverse_code->push_back(0);
+					current_code=1;
+				if( (out_edge==false) && (in_edge==false)){
+					int a=1;
+					current_code=2;
+				}
 				
+				traverse_code->push_back(current_code);
 				//*/
 			 //}
 		 }
